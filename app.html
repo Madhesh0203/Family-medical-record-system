@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FamilyMed – Dashboard</title>
+    <meta name="description" content="FamilyMed - Family medical record management dashboard." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <link rel="stylesheet" href="css/app.css" />
+</head>
+
+<body>
+
+    <!-- ============================================================
+     SIDEBAR
+     ============================================================ -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="brand">
+                <div class="brand-icon">
+                    <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+                        <rect width="32" height="32" rx="10" fill="#25CED1" />
+                        <path d="M16 6v20M6 16h20" stroke="white" stroke-width="3" stroke-linecap="round" />
+                    </svg>
+                </div>
+                <span class="brand-name">FamilyMed</span>
+            </div>
+            <button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <line x1="3" y1="6" x2="21" y2="6" />
+                    <line x1="3" y1="12" x2="21" y2="12" />
+                    <line x1="3" y1="18" x2="21" y2="18" />
+                </svg>
+            </button>
+        </div>
+
+        <!-- Family Member Quick-Switch -->
+        <div class="member-switcher" id="memberSwitcher">
+            <p class="switcher-label">Active Member</p>
+            <div class="switcher-avatar" id="switcherAvatar" onclick="showPage('profiles')">
+                <div class="avatar-img" id="switcherAvatarImg">?</div>
+                <div class="avatar-info">
+                    <span id="switcherName">Select Member</span>
+                    <small id="switcherRole">—</small>
+                </div>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="6,9 12,15 18,9" />
+                </svg>
+            </div>
+        </div>
+
+        <!-- Nav Links -->
+        <nav class="sidebar-nav">
+            <div class="nav-section-label">Main</div>
+            <a class="nav-item active" id="nav-dashboard" onclick="showPage('dashboard')" href="#">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="7" height="7" rx="1" />
+                    <rect x="14" y="3" width="7" height="7" rx="1" />
+                    <rect x="3" y="14" width="7" height="7" rx="1" />
+                    <rect x="14" y="14" width="7" height="7" rx="1" />
+                </svg>
+                <span>Dashboard</span>
+            </a>
+            <a class="nav-item" id="nav-profiles" onclick="showPage('profiles')" href="#">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                    <circle cx="9" cy="7" r="4" />
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                </svg>
+                <span>Family Profiles</span>
+                <span class="nav-badge" id="memberCountBadge">0</span>
+            </a>
+            <a class="nav-item" id="nav-visits" onclick="showPage('visits')" href="#">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                    <line x1="16" y1="2" x2="16" y2="6" />
+                    <line x1="8" y1="2" x2="8" y2="6" />
+                    <line x1="3" y1="10" x2="21" y2="10" />
+                    <path d="M12 14v4M10 16h4" />
+                </svg>
+                <span>Doctor Visits</span>
+            </a>
+            <a class="nav-item" id="nav-reports" onclick="showPage('reports')" href="#">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <polyline points="14,2 14,8 20,8" />
+                    <line x1="16" y1="13" x2="8" y2="13" />
+                    <line x1="16" y1="17" x2="8" y2="17" />
+                    <polyline points="10,9 9,9 8,9" />
+                </svg>
+                <span>Lab Reports</span>
+            </a>
+            <div class="nav-section-label">Health Tools</div>
+            <a class="nav-item" id="nav-medicines" onclick="showPage('medicines')" href="#">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M10.5 20.5 21 10a4.243 4.243 0 0 0-6-6L4.5 14.5a5 5 0 0 0 6 6z" />
+                    <path d="m8.5 8.5 7 7" />
+                </svg>
+                <span>Medicine Tracker</span>
+            </a>
+            <a class="nav-item" id="nav-expenses" onclick="showPage('expenses')" href="#">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="1" x2="12" y2="23" />
+                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                </svg>
+                <span>Expenses</span>
+            </a>
+            <div class="nav-section-label">Account</div>
+            <a class="nav-item" id="nav-settings" onclick="showPage('settings')" href="#">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="3" />
+                    <path
+                        d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                </svg>
+                <span>Settings</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="user-info" id="userInfoBar">
+                <div class="user-avatar-sm" id="userAvatarSm">U</div>
+                <div class="user-details">
+                    <span id="userNameSidebar">Loading...</span>
+                    <small>Admin</small>
+                </div>
+            </div>
+            <button class="logout-btn" onclick="handleLogout()" title="Logout">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                    <polyline points="16,17 21,12 16,7" />
+                    <line x1="21" y1="12" x2="9" y2="12" />
+                </svg>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Sidebar Overlay (mobile) -->
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+    <!-- ============================================================
+     MAIN CONTENT
+     ============================================================ -->
+    <main class="main-content" id="mainContent">
+
+        <!-- TOP BAR -->
+        <header class="topbar">
+            <div class="topbar-left">
+                <button class="menu-btn" onclick="toggleSidebar()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <line x1="3" y1="6" x2="21" y2="6" />
+                        <line x1="3" y1="12" x2="21" y2="12" />
+                        <line x1="3" y1="18" x2="21" y2="18" />
+                    </svg>
+                </button>
+                <div class="page-title-area">
+                    <h1 id="pageTitle">Dashboard</h1>
+                    <p id="pageSubtitle">Welcome back, <span id="userGreeting">User</span></p>
+                </div>
+            </div>
+            <div class="topbar-right">
+                <div class="search-bar">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8" />
+                        <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                    </svg>
+                    <input type="text" id="globalSearch" placeholder="Search records..."
+                        oninput="handleSearch(this.value)" />
+                </div>
+                <button class="notif-btn" id="notifBtn" onclick="toggleNotifications()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                    </svg>
+                    <span class="notif-dot" id="notifDot"></span>
+                </button>
+                <div class="topbar-avatar" id="topbarAvatar" onclick="showPage('settings')">U</div>
+            </div>
+        </header>
+
+        <!-- Search Results Overlay -->
+        <div class="search-results" id="searchResults" style="display:none;"></div>
+
+        <!-- Notification Panel -->
+        <div class="notif-panel" id="notifPanel" style="display:none;"></div>
+
+        <!-- ============ PAGES ============ -->
+
+        <!-- DASHBOARD PAGE -->
+        <section class="page active" id="page-dashboard">
+            <div class="dashboard-grid">
+                <!-- Stats Row -->
+                <div class="stats-row" id="statsRow"></div>
+                <!-- Timeline + Activities -->
+                <div class="dash-col-main">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Medical History Timeline</h3>
+                            <div class="member-filter-tabs" id="timelineFilterTabs"></div>
+                        </div>
+                        <div class="timeline-container" id="dashTimeline"></div>
+                    </div>
+                </div>
+                <!-- Side Panels -->
+                <div class="dash-col-side">
+                    <div class="card upcoming-card">
+                        <div class="card-header">
+                            <h3>Upcoming Follow-ups</h3>
+                        </div>
+                        <div id="upcomingFollowups"></div>
+                    </div>
+                    <div class="card chart-card">
+                        <div class="card-header">
+                            <h3>Visits by Specialization</h3>
+                        </div>
+                        <div class="mini-chart" id="specChart"></div>
+                    </div>
+                    <div class="card expense-summary-card">
+                        <div class="card-header">
+                            <h3>2026 Expenses</h3>
+                        </div>
+                        <div id="expenseSummaryDash"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- PROFILES PAGE -->
+        <section class="page" id="page-profiles" style="display:none;">
+            <div class="page-actions">
+                <button class="btn-add" id="addMemberBtn" onclick="openAddMemberModal()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <line x1="12" y1="5" x2="12" y2="19" />
+                        <line x1="5" y1="12" x2="19" y2="12" />
+                    </svg>
+                    Add Family Member
+                </button>
+            </div>
+            <div class="profiles-grid" id="profilesGrid"></div>
+            <div class="empty-state" id="profilesEmpty" style="display:none;">
+                <div class="empty-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48"
+                        height="48">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                        <circle cx="9" cy="7" r="4" />
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                    </svg>
+                </div>
+                <h3>No family members yet</h3>
+                <p>Add up to 4 family members to get started managing your health records.</p>
+                <button class="btn-add" onclick="openAddMemberModal()">Add First Member</button>
+            </div>
+        </section>
+
+        <!-- VISITS PAGE -->
+        <section class="page" id="page-visits" style="display:none;">
+            <div class="page-actions">
+                <div class="filter-row">
+                    <select class="filter-select" id="visitMemberFilter" onchange="renderVisits()">
+                        <option value="">All Members</option>
+                    </select>
+                    <select class="filter-select" id="visitSpecFilter" onchange="renderVisits()">
+                        <option value="">All Specializations</option>
+                        <option>General Physician</option>
+                        <option>Cardiologist</option>
+                        <option>Dermatologist</option>
+                        <option>Dentist</option>
+                        <option>Pediatrician</option>
+                        <option>Orthopedic</option>
+                        <option>Gynecologist</option>
+                        <option>Neurologist</option>
+                        <option>Ophthalmologist</option>
+                        <option>Endocrinologist</option>
+                        <option>Pulmonologist</option>
+                        <option>ENT Specialist</option>
+                        <option>Psychiatrist</option>
+                        <option>Urologist</option>
+                    </select>
+                    <input type="month" class="filter-select" id="visitMonthFilter" onchange="renderVisits()" />
+                </div>
+                <button class="btn-add" onclick="openAddVisitModal()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <line x1="12" y1="5" x2="12" y2="19" />
+                        <line x1="5" y1="12" x2="19" y2="12" />
+                    </svg>
+                    Add Visit
+                </button>
+            </div>
+            <div class="visits-list" id="visitsList"></div>
+            <div class="empty-state" id="visitsEmpty" style="display:none;">
+                <div class="empty-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48"
+                        height="48">
+                        <path d="M19 14l-7 7-7-7" />
+                        <path d="M12 21V3" />
+                    </svg>
+                </div>
+                <h3>No doctor visits recorded</h3>
+                <p>Record your family's doctor visits, prescriptions, and diagnoses here.</p>
+                <button class="btn-add" onclick="openAddVisitModal()">Add First Visit</button>
+            </div>
+        </section>
+
+        <!-- REPORTS PAGE -->
+        <section class="page" id="page-reports" style="display:none;">
+            <div class="page-actions">
+                <div class="filter-row">
+                    <select class="filter-select" id="reportMemberFilter" onchange="renderReports()">
+                        <option value="">All Members</option>
+                    </select>
+                    <select class="filter-select" id="reportTypeFilter" onchange="renderReports()">
+                        <option value="">All Types</option>
+                        <option>Blood Test</option>
+                        <option>X-Ray</option>
+                        <option>MRI</option>
+                        <option>CT Scan</option>
+                        <option>Ultrasound</option>
+                        <option>ECG</option>
+                        <option>Urine Test</option>
+                        <option>Other</option>
+                    </select>
+                    <select class="filter-select" id="reportYearFilter" onchange="renderReports()">
+                        <option value="">All Years</option>
+                        <option>2026</option>
+                        <option>2025</option>
+                        <option>2024</option>
+                        <option>2023</option>
+                    </select>
+                </div>
+                <button class="btn-add" onclick="openAddReportModal()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <line x1="12" y1="5" x2="12" y2="19" />
+                        <line x1="5" y1="12" x2="19" y2="12" />
+                    </svg>
+                    Upload Report
+                </button>
+            </div>
+            <div class="reports-grid" id="reportsGrid"></div>
+            <div class="empty-state" id="reportsEmpty" style="display:none;">
+                <div class="empty-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48"
+                        height="48">
+                        <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+                        <polyline points="14 2 14 8 20 8" />
+                    </svg>
+                </div>
+                <h3>No lab reports uploaded</h3>
+                <p>Upload blood tests, X-rays, MRIs and other medical reports here.</p>
+                <button class="btn-add" onclick="openAddReportModal()">Upload First Report</button>
+            </div>
+        </section>
+
+        <!-- MEDICINES PAGE -->
+        <section class="page" id="page-medicines" style="display:none;">
+            <div class="page-actions">
+                <select class="filter-select" id="medMemberFilter" onchange="renderMedicines()">
+                    <option value="">All Members</option>
+                </select>
+            </div>
+            <div class="medicines-container" id="medicinesContainer"></div>
+        </section>
+
+        <!-- EXPENSES PAGE -->
+        <section class="page" id="page-expenses" style="display:none;">
+            <div class="expenses-layout">
+                <div class="expense-summary-cards" id="expenseCards"></div>
+                <div class="card expense-detail-card">
+                    <div class="card-header">
+                        <h3>All Expenses</h3>
+                        <select class="filter-select" id="expenseYearFilter" onchange="renderExpenses()">
+                            <option value="">All Years</option>
+                            <option>2026</option>
+                            <option>2025</option>
+                            <option>2024</option>
+                        </select>
+                    </div>
+                    <div id="expenseList"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SETTINGS PAGE -->
+        <section class="page" id="page-settings" style="display:none;">
+            <div class="settings-layout">
+                <div class="settings-nav-col">
+                    <div class="settings-nav">
+                        <button class="settings-nav-btn active" onclick="showSettings('account')">Account</button>
+                        <button class="settings-nav-btn" onclick="showSettings('security')">Security & Privacy</button>
+                        <button class="settings-nav-btn" onclick="showSettings('notifications')">Notifications</button>
+                        <button class="settings-nav-btn" onclick="showSettings('data')">Data & Export</button>
+                        <button class="settings-nav-btn" onclick="showSettings('about')">About FamilyMed</button>
+                    </div>
+                </div>
+                <div class="settings-content-col">
+                    <div id="settings-account" class="settings-section active-settings"></div>
+                    <div id="settings-security" class="settings-section" style="display:none;"></div>
+                    <div id="settings-notifications" class="settings-section" style="display:none;"></div>
+                    <div id="settings-data" class="settings-section" style="display:none;"></div>
+                    <div id="settings-about" class="settings-section" style="display:none;"></div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- ============================================================
+     MODALS
+     ============================================================ -->
+
+    <!-- ADD / EDIT MEMBER MODAL -->
+    <div class="modal-overlay" id="memberModal" style="display:none;">
+        <div class="modal-box modal-lg">
+            <div class="modal-header">
+                <h3 id="memberModalTitle">Add Family Member</h3>
+                <button class="modal-close" onclick="closeMemberModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-form-grid">
+                    <div class="photo-upload-area" onclick="document.getElementById('memberPhotoInput').click()">
+                        <div id="memberPhotoPreview" class="photo-preview">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                                <circle cx="12" cy="7" r="4" />
+                            </svg>
+                            <p>Upload Photo</p>
+                        </div>
+                        <input type="file" id="memberPhotoInput" accept="image/*" style="display:none;"
+                            onchange="previewMemberPhoto(this)" />
+                    </div>
+                    <div class="member-form-fields">
+                        <div class="form-row-2">
+                            <div class="form-group"><label>Full Name *</label><input type="text" id="mName"
+                                    placeholder="Full name" /></div>
+                            <div class="form-group"><label>Role in Family</label><input type="text" id="mRole"
+                                    placeholder="e.g. Father, Mother, Son..." /></div>
+                        </div>
+                        <div class="form-row-3">
+                            <div class="form-group"><label>Date of Birth *</label><input type="date" id="mDob" /></div>
+                            <div class="form-group"><label>Gender *</label>
+                                <select id="mGender">
+                                    <option value="">Select</option>
+                                    <option>Male</option>
+                                    <option>Female</option>
+                                    <option>Other</option>
+                                </select>
+                            </div>
+                            <div class="form-group"><label>Blood Group *</label>
+                                <select id="mBlood">
+                                    <option value="">Select</option>
+                                    <option>A+</option>
+                                    <option>A-</option>
+                                    <option>B+</option>
+                                    <option>B-</option>
+                                    <option>AB+</option>
+                                    <option>AB-</option>
+                                    <option>O+</option>
+                                    <option>O-</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row-2">
+                            <div class="form-group"><label>Phone Number</label><input type="tel" id="mPhone"
+                                    placeholder="+91 98765 43210" /></div>
+                            <div class="form-group"><label>Emergency Contact</label><input type="tel" id="mEmergency"
+                                    placeholder="Emergency number" /></div>
+                        </div>
+                        <div class="form-group"><label>Known Allergies</label><input type="text" id="mAllergies"
+                                placeholder="e.g. Penicillin, Dust..." /></div>
+                        <div class="form-group"><label>Existing Medical Conditions</label><input type="text"
+                                id="mConditions" placeholder="e.g. Diabetes, Hypertension..." /></div>
+                        <div class="form-group"><label>Insurance Details</label><input type="text" id="mInsurance"
+                                placeholder="Provider, Policy number..." /></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeMemberModal()">Cancel</button>
+                <button class="btn-primary" onclick="saveMember()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="20,6 9,17 4,12" />
+                    </svg>
+                    Save Member
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PROFILE VIEW MODAL -->
+    <div class="modal-overlay" id="profileViewModal" style="display:none;">
+        <div class="modal-box modal-xl">
+            <div class="modal-header">
+                <h3>Member Profile</h3>
+                <button class="modal-close" onclick="closeProfileView()">✕</button>
+            </div>
+            <div id="profileViewContent"></div>
+        </div>
+    </div>
+
+    <!-- ADD VISIT MODAL -->
+    <div class="modal-overlay" id="visitModal" style="display:none;">
+        <div class="modal-box modal-lg">
+            <div class="modal-header">
+                <h3 id="visitModalTitle">Record Doctor Visit</h3>
+                <button class="modal-close" onclick="closeVisitModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-row-2">
+                    <div class="form-group"><label>Family Member *</label>
+                        <select id="vMember">
+                            <option value="">Select Member</option>
+                        </select>
+                    </div>
+                    <div class="form-group"><label>Visit Date *</label><input type="date" id="vDate" /></div>
+                </div>
+                <div class="form-row-2">
+                    <div class="form-group"><label>Doctor Name *</label><input type="text" id="vDoctor"
+                            placeholder="Dr. Full Name" /></div>
+                    <div class="form-group"><label>Specialization *</label>
+                        <select id="vSpec">
+                            <option value="">Select Specialization</option>
+                            <option>General Physician</option>
+                            <option>Cardiologist</option>
+                            <option>Dermatologist</option>
+                            <option>Dentist</option>
+                            <option>Pediatrician</option>
+                            <option>Orthopedic</option>
+                            <option>Gynecologist</option>
+                            <option>Neurologist</option>
+                            <option>Ophthalmologist</option>
+                            <option>Endocrinologist</option>
+                            <option>Pulmonologist</option>
+                            <option>ENT Specialist</option>
+                            <option>Psychiatrist</option>
+                            <option>Urologist</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row-2">
+                    <div class="form-group"><label>Hospital / Clinic *</label><input type="text" id="vHospital"
+                            placeholder="Hospital name" /></div>
+                    <div class="form-group"><label>Consultation Fee (₹)</label><input type="number" id="vFee"
+                            placeholder="0" /></div>
+                </div>
+                <div class="form-group"><label>Diagnosis / Notes *</label><textarea id="vDiagnosis" rows="3"
+                        placeholder="Enter diagnosis, symptoms, and doctor's notes..."></textarea></div>
+                <div class="form-row-2">
+                    <div class="form-group">
+                        <label>Follow-up Required</label>
+                        <div class="toggle-group">
+                            <button class="toggle-opt active" id="followNo" onclick="setFollowUp(false)">No</button>
+                            <button class="toggle-opt" id="followYes" onclick="setFollowUp(true)">Yes</button>
+                        </div>
+                    </div>
+                    <div class="form-group" id="followUpDateGroup" style="display:none;">
+                        <label>Follow-up Date</label>
+                        <input type="date" id="vFollowDate" />
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Medicines Prescribed</label>
+                    <div class="medicine-input-area">
+                        <div id="medicineInputList">
+                            <div class="med-input-row">
+                                <input type="text"
+                                    placeholder="Medicine name, dose, frequency (e.g. Metformin 500mg 1-0-1)" />
+                                <button class="med-add-btn" onclick="addMedicineInput()">+</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Prescription Upload</label>
+                    <div class="upload-zone" id="prescriptionUploadZone"
+                        onclick="document.getElementById('prescriptionFile').click()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                            <polyline points="17,8 12,3 7,8" />
+                            <line x1="12" y1="3" x2="12" y2="15" />
+                        </svg>
+                        <p><strong>Click to upload</strong> or drag and drop</p>
+                        <small>PDF, JPG, PNG up to 10MB</small>
+                        <p id="prescUploadStatus"></p>
+                    </div>
+                    <input type="file" id="prescriptionFile" accept="image/*,.pdf" style="display:none;"
+                        onchange="handlePrescriptionUpload(this)" />
+                </div>
+                <!-- OCR Preview -->
+                <div id="ocrPreviewArea" style="display:none;">
+                    <div class="ocr-box">
+                        <div class="ocr-header">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="3" width="18" height="18" rx="2" />
+                                <path d="M9 9h.01M15 9h.01M9 15h6" />
+                            </svg>
+                            <span>OCR Extracted Text</span>
+                            <span class="ocr-badge">Auto-extracted</span>
+                        </div>
+                        <p id="ocrText" class="ocr-text"></p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeVisitModal()">Cancel</button>
+                <button class="btn-primary" onclick="saveVisit()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="20,6 9,17 4,12" />
+                    </svg>
+                    Save Visit
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADD REPORT MODAL -->
+    <div class="modal-overlay" id="reportModal" style="display:none;">
+        <div class="modal-box modal-md">
+            <div class="modal-header">
+                <h3>Upload Lab Report</h3>
+                <button class="modal-close" onclick="closeReportModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-row-2">
+                    <div class="form-group"><label>Family Member *</label>
+                        <select id="rMember">
+                            <option value="">Select Member</option>
+                        </select>
+                    </div>
+                    <div class="form-group"><label>Report Date *</label><input type="date" id="rDate" /></div>
+                </div>
+                <div class="form-row-2">
+                    <div class="form-group"><label>Report Type *</label>
+                        <select id="rType">
+                            <option value="">Select Type</option>
+                            <option>Blood Test</option>
+                            <option>X-Ray</option>
+                            <option>MRI</option>
+                            <option>CT Scan</option>
+                            <option>Ultrasound</option>
+                            <option>ECG</option>
+                            <option>Urine Test</option>
+                            <option>Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group"><label>Referring Doctor</label><input type="text" id="rDoctor"
+                            placeholder="Doctor name" /></div>
+                </div>
+                <div class="form-group"><label>Report Name / Description *</label><input type="text" id="rName"
+                        placeholder="e.g. Complete Blood Count, Lipid Profile..." /></div>
+                <div class="form-group">
+                    <label>Upload File</label>
+                    <div class="upload-zone" id="reportUploadZone"
+                        onclick="document.getElementById('reportFile').click()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                            <polyline points="17,8 12,3 7,8" />
+                            <line x1="12" y1="3" x2="12" y2="15" />
+                        </svg>
+                        <p><strong>Click to upload</strong> or drag and drop</p>
+                        <small>PDF, JPG, PNG, DICOM up to 20MB</small>
+                        <p id="rUploadStatus"></p>
+                    </div>
+                    <input type="file" id="reportFile" accept="image/*,.pdf" style="display:none;"
+                        onchange="handleReportUpload(this)" />
+                </div>
+                <div class="form-group"><label>Notes</label><textarea id="rNotes" rows="2"
+                        placeholder="Any additional notes about this report..."></textarea></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeReportModal()">Cancel</button>
+                <button class="btn-primary" onclick="saveReport()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="20,6 9,17 4,12" />
+                    </svg>
+                    Upload Report
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- VISIT DETAIL MODAL -->
+    <div class="modal-overlay" id="visitDetailModal" style="display:none;">
+        <div class="modal-box modal-lg">
+            <div class="modal-header">
+                <h3>Visit Details</h3>
+                <button class="modal-close"
+                    onclick="document.getElementById('visitDetailModal').style.display='none'">✕</button>
+            </div>
+            <div id="visitDetailContent" class="modal-body"></div>
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION -->
+    <div class="toast" id="toast" style="display:none;"></div>
+
+    <script src="js/data.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/dashboard.js"></script>
+    <script src="js/profiles.js"></script>
+    <script src="js/visits.js"></script>
+    <script src="js/modules.js"></script>
+    <script src="js/app.js"></script>
+</body>
+
+</html>

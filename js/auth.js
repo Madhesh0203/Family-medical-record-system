@@ -1,0 +1,253 @@
+// ===================== FamilyMed Auth Logic =====================
+const STORAGE_KEY = 'familymed_users';
+const SESSION_KEY = 'familymed_session';
+
+function getUsers() {
+  return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+}
+function saveUsers(users) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(users));
+}
+function setSession(user) {
+  const session = { uid: user.uid, email: user.email, name: user.name, loggedIn: true, ts: Date.now() };
+  sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  if (document.getElementById('rememberMe')?.checked) {
+    localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  }
+}
+function getSession() {
+  return JSON.parse(sessionStorage.getItem(SESSION_KEY) || localStorage.getItem(SESSION_KEY) || 'null');
+}
+
+// Redirect if already logged in
+(function() {
+  const s = getSession();
+  if (s && s.loggedIn) window.location.href = 'app.html';
+})();
+
+function showTab(tab) {
+  document.getElementById('loginForm').style.display = tab === 'login' ? 'block' : 'none';
+  document.getElementById('registerForm').style.display = tab === 'register' ? 'block' : 'none';
+  document.getElementById('loginTabBtn').classList.toggle('active', tab === 'login');
+  document.getElementById('registerTabBtn').classList.toggle('active', tab === 'register');
+}
+
+function togglePassword(id, btn) {
+  const input = document.getElementById(id);
+  if (input.type === 'password') {
+    input.type = 'text';
+    btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`;
+  } else {
+    input.type = 'password';
+    btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
+  }
+}
+
+function showError(id, msg) {
+  const el = document.getElementById(id);
+  el.textContent = msg; el.style.display = 'block';
+  setTimeout(() => el.style.display = 'none', 4000);
+}
+function showSuccess(id, msg) {
+  const el = document.getElementById(id);
+  el.textContent = msg; el.style.display = 'block';
+}
+
+function generateUID() {
+  return 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+}
+
+// Password Strength
+document.addEventListener('DOMContentLoaded', () => {
+  const passInput = document.getElementById('regPassword');
+  if (passInput) {
+    passInput.addEventListener('input', function() {
+      const val = this.value;
+      const div = document.getElementById('passStrength');
+      const fill = document.getElementById('strengthFill');
+      const text = document.getElementById('strengthText');
+      if (!val) { div.style.display = 'none'; return; }
+      div.style.display = 'flex';
+      let score = 0;
+      if (val.length >= 8) score++;
+      if (/[A-Z]/.test(val)) score++;
+      if (/[0-9]/.test(val)) score++;
+      if (/[^A-Za-z0-9]/.test(val)) score++;
+      const levels = [
+        { w: '25%', color: '#ef4444', label: 'Weak' },
+        { w: '50%', color: '#f59e0b', label: 'Fair' },
+        { w: '75%', color: '#3b82f6', label: 'Good' },
+        { w: '100%', color: '#10b981', label: 'Strong' }
+      ];
+      const l = levels[Math.max(0, score - 1)];
+      fill.style.width = l.w; fill.style.background = l.color;
+      text.textContent = l.label; text.style.color = l.color;
+    });
+  }
+});
+
+async function handleLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  if (!email || !password) { showError('loginError', 'Please fill in all fields.'); return; }
+  const btn = document.getElementById('loginBtn');
+  btn.classList.add('loading'); btn.querySelector('span').textContent = 'Signing in...';
+  await sleep(800);
+  const users = getUsers();
+  // Seed demo user if empty
+  if (users.length === 0) seedDemoData();
+  const allUsers = getUsers();
+  const user = allUsers.find(u => u.email === email && u.password === btoa(password));
+  if (!user) {
+    btn.classList.remove('loading'); btn.querySelector('span').textContent = 'Sign In';
+    showError('loginError', 'Invalid email or password. Try the Demo Account!');
+    return;
+  }
+  setSession(user);
+  window.location.href = 'app.html';
+}
+
+async function handleRegister() {
+  const firstName = document.getElementById('regFirstName').value.trim();
+  const lastName = document.getElementById('regLastName').value.trim();
+  const email = document.getElementById('regEmail').value.trim();
+  const password = document.getElementById('regPassword').value;
+  const confirm = document.getElementById('regConfirmPassword').value;
+  const terms = document.getElementById('termsCheck').checked;
+
+  if (!firstName || !lastName || !email || !password || !confirm) {
+    showError('registerError', 'Please fill in all fields.'); return;
+  }
+  if (password !== confirm) { showError('registerError', 'Passwords do not match.'); return; }
+  if (password.length < 8) { showError('registerError', 'Password must be at least 8 characters.'); return; }
+  if (!terms) { showError('registerError', 'Please accept the Terms of Service.'); return; }
+
+  const users = getUsers();
+  if (users.find(u => u.email === email)) {
+    showError('registerError', 'An account with this email already exists.'); return;
+  }
+
+  const btn = document.getElementById('registerBtn');
+  btn.classList.add('loading'); btn.querySelector('span').textContent = 'Creating Account...';
+  await sleep(1000);
+
+  const newUser = {
+    uid: generateUID(), email,
+    name: firstName + ' ' + lastName,
+    password: btoa(password),
+    createdAt: new Date().toISOString(),
+    role: 'admin'
+  };
+  users.push(newUser);
+  saveUsers(users);
+  btn.classList.remove('loading'); btn.querySelector('span').textContent = 'Create Account';
+  showSuccess('registerSuccess', '✓ Account created! Redirecting...');
+  setSession(newUser);
+  setTimeout(() => window.location.href = 'app.html', 1200);
+}
+
+function loginDemo() {
+  seedDemoData();
+  const users = getUsers();
+  const demo = users.find(u => u.email === 'demo@familymed.com');
+  if (demo) { setSession(demo); window.location.href = 'app.html'; }
+}
+
+function seedDemoData() {
+  let users = getUsers();
+  if (users.find(u => u.email === 'demo@familymed.com')) return;
+  const demoUser = {
+    uid: 'demo_user_001', email: 'demo@familymed.com',
+    name: 'Demo User', password: btoa('demo1234'),
+    createdAt: new Date().toISOString(), role: 'admin'
+  };
+  users.push(demoUser);
+  saveUsers(users);
+  // Seed demo family & records
+  const families = JSON.parse(localStorage.getItem('familymed_families') || '{}');
+  families['demo_user_001'] = getDemoFamily();
+  localStorage.setItem('familymed_families', JSON.stringify(families));
+}
+
+function getDemoFamily() {
+  return {
+    members: [
+      {
+        id: 'mem_001', name: 'Rajesh Kumar', dob: '1975-06-15', gender: 'Male',
+        bloodGroup: 'B+', phone: '+91 98765 43210', emergency: '+91 99887 76655',
+        allergies: 'Penicillin', conditions: 'Hypertension, Type 2 Diabetes',
+        insurance: 'Star Health - Policy #SH2024001', photo: null, role: 'Father'
+      },
+      {
+        id: 'mem_002', name: 'Priya Kumar', dob: '1978-03-22', gender: 'Female',
+        bloodGroup: 'A+', phone: '+91 98765 11111', emergency: '+91 98765 43210',
+        allergies: 'Sulfa drugs', conditions: 'Thyroid (Hypothyroidism)',
+        insurance: 'Star Health - Policy #SH2024002', photo: null, role: 'Mother'
+      },
+      {
+        id: 'mem_003', name: 'Arjun Kumar', dob: '2005-09-10', gender: 'Male',
+        bloodGroup: 'O+', phone: '+91 98765 22222', emergency: '+91 98765 43210',
+        allergies: 'None', conditions: 'Mild Asthma',
+        insurance: 'Star Health - Policy #SH2024003', photo: null, role: 'Son'
+      },
+      {
+        id: 'mem_004', name: 'Ananya Kumar', dob: '2010-12-05', gender: 'Female',
+        bloodGroup: 'B+', phone: 'N/A', emergency: '+91 98765 43210',
+        allergies: 'Dust, Pollen', conditions: 'None',
+        insurance: 'Star Health - Policy #SH2024004', photo: null, role: 'Daughter'
+      }
+    ],
+    visits: [
+      {
+        id: 'v001', memberId: 'mem_001', doctorName: 'Dr. Suresh Menon', specialization: 'Cardiologist',
+        hospital: 'Apollo Hospitals', date: '2026-02-15', fee: 800,
+        diagnosis: 'Hypertension well-controlled. Continue current medications. BP: 130/85.',
+        followUp: true, followUpDate: '2026-05-15',
+        medicines: ['Amlodipine 5mg (1-0-0)', 'Metformin 500mg (1-0-1)', 'Aspirin 75mg (0-1-0)'],
+        notes: 'Patient advised lifestyle modifications and regular exercise.'
+      },
+      {
+        id: 'v002', memberId: 'mem_002', doctorName: 'Dr. Kavitha Rao', specialization: 'Endocrinologist',
+        hospital: 'Fortis Hospital', date: '2026-01-20', fee: 600,
+        diagnosis: 'TSH levels elevated. Dosage adjustment needed.',
+        followUp: true, followUpDate: '2026-04-20',
+        medicines: ['Levothyroxine 75mcg (1-0-0)'],
+        notes: 'Repeat thyroid panel in 3 months.'
+      },
+      {
+        id: 'v003', memberId: 'mem_003', doctorName: 'Dr. Vinod Sharma', specialization: 'Pulmonologist',
+        hospital: 'Manipal Hospital', date: '2025-12-10', fee: 500,
+        diagnosis: 'Mild intermittent asthma. Seasonal triggers identified.',
+        followUp: false, followUpDate: null,
+        medicines: ['Salbutamol Inhaler (as needed)', 'Montelukast 10mg (0-0-1)'],
+        notes: 'Avoid cold air. Use peak flow meter weekly.'
+      },
+      {
+        id: 'v004', memberId: 'mem_001', doctorName: 'Dr. Priya Iyer', specialization: 'General Physician',
+        hospital: 'City Clinic', date: '2025-11-05', fee: 300,
+        diagnosis: 'Seasonal flu. Viral fever resolved.',
+        followUp: false, followUpDate: null,
+        medicines: ['Paracetamol 500mg (1-1-1)', 'Cetirizine 10mg (0-0-1)'],
+        notes: 'Rest for 3 days. Stay hydrated.'
+      }
+    ],
+    reports: [
+      { id: 'r001', memberId: 'mem_001', type: 'Blood Test', name: 'Lipid Profile', date: '2026-02-14', doctor: 'Dr. Suresh Menon', fileName: 'lipid_profile.pdf' },
+      { id: 'r002', memberId: 'mem_001', type: 'Blood Test', name: 'HbA1c Report', date: '2026-02-14', doctor: 'Dr. Suresh Menon', fileName: 'hba1c.pdf' },
+      { id: 'r003', memberId: 'mem_002', type: 'Blood Test', name: 'Thyroid Panel (TSH, T3, T4)', date: '2026-01-18', doctor: 'Dr. Kavitha Rao', fileName: 'thyroid.pdf' },
+      { id: 'r004', memberId: 'mem_003', type: 'X-Ray', name: 'Chest X-Ray', date: '2025-12-08', doctor: 'Dr. Vinod Sharma', fileName: 'chest_xray.jpg' }
+    ]
+  };
+}
+
+function showForgotModal() { document.getElementById('forgotModal').style.display = 'flex'; }
+function closeForgotModal() { document.getElementById('forgotModal').style.display = 'none'; }
+function handleForgot() {
+  const email = document.getElementById('forgotEmail').value.trim();
+  const msg = document.getElementById('forgotMsg');
+  if (!email) { msg.textContent = 'Please enter your email.'; msg.style.color = '#ef4444'; return; }
+  msg.textContent = '✓ If an account exists with this email, reset instructions have been sent.';
+  msg.style.color = '#10b981';
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
