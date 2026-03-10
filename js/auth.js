@@ -89,6 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 document.addEventListener('DOMContentLoaded', () => {
   console.log('DOM Content Loaded, binding listeners...');
+
   // Tabs
   document.getElementById('loginTabBtn')?.addEventListener('click', () => showTab('login'));
   document.getElementById('registerTabBtn')?.addEventListener('click', () => showTab('register'));
@@ -106,17 +107,16 @@ document.addEventListener('DOMContentLoaded', () => {
     showForgotModal();
   });
   document.querySelector('.modal-close')?.addEventListener('click', closeForgotModal);
-  document.querySelector('.modal-box .btn-primary')?.addEventListener('click', handleForgot);
+  document.getElementById('forgotSubmitBtn')?.addEventListener('click', handleForgot);
 
   // Toggle Password listeners
   document.querySelectorAll('.toggle-pass').forEach(btn => {
-    btn.addEventListener('click', function () {
-      // Find the input ID from the onclick attribute if possible, otherwise find nearby input
-      let inputId = this.getAttribute('onclick')?.match(/'([^']+)'/)?.[1];
-      if (!inputId) {
-        inputId = this.previousElementSibling?.id;
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      const input = this.parentElement.querySelector('input');
+      if (input) {
+        togglePassword(input.id, this);
       }
-      if (inputId) togglePassword(inputId, this);
     });
   });
 });
