@@ -1,4 +1,5 @@
 // ===================== FamilyMed Auth Logic =====================
+console.log('auth.js module loading...');
 const STORAGE_KEY = 'familymed_users';
 const SESSION_KEY = 'familymed_session';
 
@@ -20,7 +21,7 @@ function getSession() {
 }
 
 // Redirect if already logged in
-(function() {
+(function () {
   const s = getSession();
   if (s && s.loggedIn) window.location.href = 'app.html';
 })();
@@ -61,7 +62,7 @@ function generateUID() {
 document.addEventListener('DOMContentLoaded', () => {
   const passInput = document.getElementById('regPassword');
   if (passInput) {
-    passInput.addEventListener('input', function() {
+    passInput.addEventListener('input', function () {
       const val = this.value;
       const div = document.getElementById('passStrength');
       const fill = document.getElementById('strengthFill');
@@ -84,6 +85,40 @@ document.addEventListener('DOMContentLoaded', () => {
       text.textContent = l.label; text.style.color = l.color;
     });
   }
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  console.log('DOM Content Loaded, binding listeners...');
+  // Tabs
+  document.getElementById('loginTabBtn')?.addEventListener('click', () => showTab('login'));
+  document.getElementById('registerTabBtn')?.addEventListener('click', () => showTab('register'));
+
+  // Login
+  document.getElementById('loginBtn')?.addEventListener('click', handleLogin);
+  document.querySelector('.btn-demo')?.addEventListener('click', loginDemo);
+
+  // Register
+  document.getElementById('registerBtn')?.addEventListener('click', handleRegister);
+
+  // Forgot Password
+  document.querySelector('.forgot-link')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    showForgotModal();
+  });
+  document.querySelector('.modal-close')?.addEventListener('click', closeForgotModal);
+  document.querySelector('.modal-box .btn-primary')?.addEventListener('click', handleForgot);
+
+  // Toggle Password listeners
+  document.querySelectorAll('.toggle-pass').forEach(btn => {
+    btn.addEventListener('click', function () {
+      // Find the input ID from the onclick attribute if possible, otherwise find nearby input
+      let inputId = this.getAttribute('onclick')?.match(/'([^']+)'/)?.[1];
+      if (!inputId) {
+        inputId = this.previousElementSibling?.id;
+      }
+      if (inputId) togglePassword(inputId, this);
+    });
+  });
 });
 
 async function handleLogin() {
@@ -147,18 +182,23 @@ async function handleRegister() {
 }
 
 function loginDemo() {
+  console.log('loginDemo called');
   seedDemoData();
   const users = getUsers();
-  const demo = users.find(u => u.email === 'demo@familymed.com');
+  const demoEmail = import.meta.env.VITE_DEMO_EMAIL || 'demo@familymed.com';
+  const demo = users.find(u => u.email === demoEmail);
   if (demo) { setSession(demo); window.location.href = 'app.html'; }
 }
 
 function seedDemoData() {
   let users = getUsers();
   if (users.find(u => u.email === 'demo@familymed.com')) return;
+  const demoEmail = import.meta.env.VITE_DEMO_EMAIL || 'demo@familymed.com';
+  const demoPassword = import.meta.env.VITE_DEMO_PASSWORD || 'demo1234';
+
   const demoUser = {
-    uid: 'demo_user_001', email: 'demo@familymed.com',
-    name: 'Demo User', password: btoa('demo1234'),
+    uid: 'demo_user_001', email: demoEmail,
+    name: 'Demo User', password: btoa(demoPassword),
     createdAt: new Date().toISOString(), role: 'admin'
   };
   users.push(demoUser);
@@ -249,5 +289,15 @@ function handleForgot() {
   msg.textContent = '✓ If an account exists with this email, reset instructions have been sent.';
   msg.style.color = '#10b981';
 }
+
+// Attach to window for HTML onclick compatibility
+window.showTab = showTab;
+window.togglePassword = togglePassword;
+window.handleLogin = handleLogin;
+window.handleRegister = handleRegister;
+window.loginDemo = loginDemo;
+window.showForgotModal = showForgotModal;
+window.closeForgotModal = closeForgotModal;
+window.handleForgot = handleForgot;
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
