@@ -109,6 +109,14 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelector('.modal-close')?.addEventListener('click', closeForgotModal);
   document.getElementById('forgotSubmitBtn')?.addEventListener('click', handleForgot);
 
+  // OTP
+  document.getElementById('verifyOtpBtn')?.addEventListener('click', verifyOTP);
+  document.getElementById('backToLogin')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    document.getElementById('otpForm').style.display = 'none';
+    document.getElementById('loginForm').style.display = 'block';
+  });
+
   // Toggle Password listeners
   document.querySelectorAll('.toggle-pass').forEach(btn => {
     btn.addEventListener('click', function (e) {
@@ -138,8 +146,41 @@ async function handleLogin() {
     showError('loginError', 'Invalid email or password. Try the Demo Account!');
     return;
   }
+
+  // Check for 2FA
+  if (user.twoFA) {
+    // Generate mock OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    window._pendingUser = user;
+    window._generatedOtp = otp;
+    
+    // Simulate sending email
+    console.log(`[OTP DEBUG] Sent OTP ${otp} to ${user.email}`);
+    alert(`[DEMO ONLY] Your verification code is: ${otp}`);
+    
+    btn.classList.remove('loading'); btn.querySelector('span').textContent = 'Sign In';
+    document.getElementById('loginForm').style.display = 'none';
+    document.getElementById('otpForm').style.display = 'block';
+    return;
+  }
+
   setSession(user);
   window.location.href = 'app.html';
+}
+
+async function verifyOTP() {
+  const otpInput = document.getElementById('otpInput').value.trim();
+  if (!otpInput) { showError('otpError', 'Please enter the verification code.'); return; }
+  
+  if (otpInput === window._generatedOtp) {
+    const btn = document.getElementById('verifyOtpBtn');
+    btn.classList.add('loading'); btn.querySelector('span').textContent = 'Verifying...';
+    await sleep(800);
+    setSession(window._pendingUser);
+    window.location.href = 'app.html';
+  } else {
+    showError('otpError', 'Invalid verification code. Please try again.');
+  }
 }
 
 async function handleRegister() {
