@@ -1,6 +1,18 @@
 // ===================== FamilyMed Auth Logic =====================
 console.log('auth.js module loading...');
 
+// Safe environment variable access
+function getEnv(key, fallback = '') {
+  try {
+    if (import.meta && import.meta.env) {
+      return import.meta.env[key] || fallback;
+    }
+  } catch (e) {
+    // Silently fallback if import.meta is not accessible
+  }
+  return fallback;
+}
+
 // Global Error Handler for easier debugging
 window.onerror = function(msg, url, line, col, error) {
   console.error('[Global Error]', msg, 'at', url, 'line', line);
@@ -11,7 +23,7 @@ window.onerror = function(msg, url, line, col, error) {
 // Initialize EmailJS
 (function() {
   try {
-    const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
+    const publicKey = getEnv('VITE_EMAILJS_PUBLIC_KEY');
     if (typeof emailjs !== 'undefined' && publicKey && publicKey !== 'your_public_key') {
       emailjs.init(publicKey);
       console.log('EmailJS initialized successfully');
@@ -263,8 +275,8 @@ async function verifyOTP() {
 }
 
 async function sendOTPEmail(user, otp) {
-  const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID;
-  const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
+  const serviceId = getEnv('VITE_EMAILJS_SERVICE_ID');
+  const templateId = getEnv('VITE_EMAILJS_TEMPLATE_ID');
   
   if (!serviceId || serviceId === 'your_service_id' || !templateId || templateId === 'your_template_id') {
     return false;
@@ -331,7 +343,7 @@ function loginDemo() {
     console.log('loginDemo called');
     seedDemoData();
     const users = getUsers();
-    const demoEmail = import.meta.env.VITE_DEMO_EMAIL || 'demo@familymed.com';
+    const demoEmail = getEnv('VITE_DEMO_EMAIL', 'demo@familymed.com');
     const demo = users.find(u => u.email === demoEmail);
     if (demo) { 
       setSession(demo); 
@@ -349,8 +361,8 @@ function seedDemoData() {
   try {
     let users = getUsers();
     if (users.find(u => u.email === 'demo@familymed.com')) return;
-    const demoEmail = import.meta.env.VITE_DEMO_EMAIL || 'demo@familymed.com';
-    const demoPassword = import.meta.env.VITE_DEMO_PASSWORD || 'demo1234';
+    const demoEmail = getEnv('VITE_DEMO_EMAIL', 'demo@familymed.com');
+    const demoPassword = getEnv('VITE_DEMO_PASSWORD', 'demo1234');
 
     const demoUser = {
       uid: 'demo_user_001', email: demoEmail,
