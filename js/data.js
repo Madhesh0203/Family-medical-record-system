@@ -6,10 +6,19 @@ const FAMILIES_KEY = 'familymed_families';
 const USERS_KEY = 'familymed_users';
 
 function getUsers() {
-    return JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
+    try {
+        return JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
+    } catch (e) {
+        console.error('Error parsing users:', e);
+        return [];
+    }
 }
 function saveUsers(users) {
-    localStorage.setItem(USERS_KEY, JSON.stringify(users));
+    try {
+        localStorage.setItem(USERS_KEY, JSON.stringify(users));
+    } catch (e) {
+        console.error('Error saving users:', e);
+    }
 }
 
 function getSession() {
@@ -24,11 +33,16 @@ function getCurrentUid() {
     return s ? s.uid : null;
 }
 function getFamilyData() {
-    const uid = getCurrentUid();
-    const all = JSON.parse(localStorage.getItem(FAMILIES_KEY) || '{}');
-    if (!uid) return { members: [], visits: [], reports: [] };
-    if (!all[uid]) all[uid] = { members: [], visits: [], reports: [] };
-    return all[uid];
+    try {
+        const uid = getCurrentUid();
+        const all = JSON.parse(localStorage.getItem(FAMILIES_KEY) || '{}');
+        if (!uid) return { members: [], visits: [], reports: [] };
+        if (!all[uid]) all[uid] = { members: [], visits: [], reports: [] };
+        return all[uid];
+    } catch (e) {
+        console.error('Error getting family data:', e);
+        return { members: [], visits: [], reports: [] };
+    }
 }
 function saveFamilyData(data) {
     const uid = getCurrentUid();

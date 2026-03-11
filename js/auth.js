@@ -1,24 +1,56 @@
 // ===================== FamilyMed Auth Logic =====================
 console.log('auth.js module loading...');
 
+// Global Error Handler for easier debugging
+window.onerror = function(msg, url, line, col, error) {
+  console.error('[Global Error]', msg, 'at', url, 'line', line);
+  alert('A system error occurred: ' + msg + '\nPlease check the console for details.');
+  return false;
+};
+
 // Initialize EmailJS
 (function() {
-  const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
-  if (publicKey && publicKey !== 'your_public_key') {
-    emailjs.init(publicKey);
-    console.log('EmailJS initialized successfully');
-  } else {
-    console.warn('EmailJS Public Key not set or using placeholder. Email sending will fail.');
+  try {
+    const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
+    if (typeof emailjs !== 'undefined' && publicKey && publicKey !== 'your_public_key') {
+      emailjs.init(publicKey);
+      console.log('EmailJS initialized successfully');
+    } else if (typeof emailjs === 'undefined') {
+      console.warn('EmailJS SDK not loaded yet. Retrying in 1s...');
+      setTimeout(() => {
+        try {
+          if (typeof emailjs !== 'undefined' && publicKey && publicKey !== 'your_public_key') {
+            emailjs.init(publicKey);
+            console.log('EmailJS initialized after delay');
+          }
+        } catch (e) {
+          console.error('Error in delayed EmailJS init:', e);
+        }
+      }, 1000);
+    } else {
+      console.warn('EmailJS Public Key not set or using placeholder. Email sending will fail.');
+    }
+  } catch (e) {
+    console.error('Error in EmailJS init:', e);
   }
 })();
 const STORAGE_KEY = 'familymed_users';
 const SESSION_KEY = 'familymed_session';
 
 function getUsers() {
-  return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+  } catch (e) {
+    console.error('Error parsing users from localStorage:', e);
+    return [];
+  }
 }
 function saveUsers(users) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(users));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(users));
+  } catch (e) {
+    console.error('Error saving users to localStorage:', e);
+  }
 }
 function setSession(user) {
   const session = { uid: user.uid, email: user.email, name: user.name, loggedIn: true, ts: Date.now() };
@@ -98,9 +130,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-document.addEventListener('DOMContentLoaded', () => {
-  console.log('DOM Content Loaded, binding listeners...');
-
+// Binding listeners (Modules run after DOM by default, but let's be safe)
+function bindListeners() {
+  console.log('Binding listeners...');
+  
   // Tabs
   document.getElementById('loginTabBtn')?.addEventListener('click', () => showTab('login'));
   document.getElementById('registerTabBtn')?.addEventListener('click', () => showTab('register'));
@@ -138,52 +171,80 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   });
-});
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    try {
+      console.log('DOM Content Loaded (via listener)');
+      bindListeners();
+    } catch (e) {
+      console.error('Error in DOMContentLoaded listener:', e);
+    }
+  });
+} else {
+  try {
+    console.log('DOM already ready, binding immediately');
+    bindListeners();
+  } catch (e) {
+    console.error('Error during immediate binding:', e);
+  }
+}
 
 async function handleLogin() {
-  const email = document.getElementById('loginEmail').value.trim();
-  const password = document.getElementById('loginPassword').value;
-  if (!email || !password) { showError('loginError', 'Please fill in all fields.'); return; }
-  const btn = document.getElementById('loginBtn');
-  btn.classList.add('loading'); btn.querySelector('span').textContent = 'Signing in...';
-  await sleep(800);
-  const users = getUsers();
-  // Seed demo user if empty
-  if (users.length === 0) seedDemoData();
-  const allUsers = getUsers();
-  const user = allUsers.find(u => u.email === email && u.password === btoa(password));
-  if (!user) {
-    btn.classList.remove('loading'); btn.querySelector('span').textContent = 'Sign In';
-    showError('loginError', 'Invalid email or password. Try the Demo Account!');
-    return;
-  }
-
-  // Check for 2FA
-  if (user.twoFA) {
-    // Generate 6-digit OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    window._pendingUser = user;
-    window._generatedOtp = otp;
-    
-    // Send real email via EmailJS
-    const sent = await sendOTPEmail(user, otp);
-    
-    if (sent) {
-      showSuccess('loginError', `✓ Verification code sent to ${user.email}`);
-    } else {
-      // Fallback for demo/debug if EmailJS is not configured
-      console.log(`[OTP DEBUG] Email sending failed or not configured. Use OTP: ${otp}`);
-      alert(`[SYSTEM] Real email sending failed. Using debug alert: Your verification code is: ${otp}`);
+  try {
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    if (!email || !password) { showError('loginError', 'Please fill in all fields.'); return; }
+    const btn = document.getElementById('loginBtn');
+    btn.classList.add('loading'); btn.querySelector('span').textContent = 'Signing in...';
+    await sleep(800);
+    const users = getUsers();
+    // Seed demo user if empty
+    if (users.length === 0) seedDemoData();
+    const allUsers = getUsers();
+    const user = allUsers.find(u => u.email === email && u.password === btoa(password));
+    if (!user) {
+      btn.classList.remove('loading'); btn.querySelector('span').textContent = 'Sign In';
+      showError('loginError', 'Invalid email or password. Try the Demo Account!');
+      return;
     }
-    
-    btn.classList.remove('loading'); btn.querySelector('span').textContent = 'Sign In';
-    document.getElementById('loginForm').style.display = 'none';
-    document.getElementById('otpForm').style.display = 'block';
-    return;
-  }
 
-  setSession(user);
-  window.location.href = 'app.html';
+    // Check for 2FA
+    if (user.twoFA) {
+      // Generate 6-digit OTP
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      window._pendingUser = user;
+      window._generatedOtp = otp;
+      
+      // Send real email via EmailJS
+      const sent = await sendOTPEmail(user, otp);
+      
+      if (sent) {
+        showSuccess('loginError', `✓ Verification code sent to ${user.email}`);
+      } else {
+        // Fallback for demo/debug if EmailJS is not configured
+        console.log(`[OTP DEBUG] Email sending failed or not configured. Use OTP: ${otp}`);
+        alert(`[SYSTEM] Real email sending failed. Using debug alert: Your verification code is: ${otp}`);
+      }
+      
+      btn.classList.remove('loading'); btn.querySelector('span').textContent = 'Sign In';
+      document.getElementById('loginForm').style.display = 'none';
+      document.getElementById('otpForm').style.display = 'block';
+      return;
+    }
+
+    setSession(user);
+    window.location.href = 'app.html';
+  } catch (e) {
+    console.error('Login error:', e);
+    const btn = document.getElementById('loginBtn');
+    if (btn) {
+      btn.classList.remove('loading');
+      btn.querySelector('span').textContent = 'Sign In';
+    }
+    showError('loginError', 'An error occurred during login: ' + e.message);
+  }
 }
 
 async function verifyOTP() {
@@ -266,31 +327,47 @@ async function handleRegister() {
 }
 
 function loginDemo() {
-  console.log('loginDemo called');
-  seedDemoData();
-  const users = getUsers();
-  const demoEmail = import.meta.env.VITE_DEMO_EMAIL || 'demo@familymed.com';
-  const demo = users.find(u => u.email === demoEmail);
-  if (demo) { setSession(demo); window.location.href = 'app.html'; }
+  try {
+    console.log('loginDemo called');
+    seedDemoData();
+    const users = getUsers();
+    const demoEmail = import.meta.env.VITE_DEMO_EMAIL || 'demo@familymed.com';
+    const demo = users.find(u => u.email === demoEmail);
+    if (demo) { 
+      setSession(demo); 
+      window.location.href = 'app.html'; 
+    } else {
+      showError('loginError', 'Demo account not found. Please refresh.');
+    }
+  } catch (e) {
+    console.error('Demo login error:', e);
+    showError('loginError', 'Demo login failed: ' + e.message);
+  }
 }
 
 function seedDemoData() {
-  let users = getUsers();
-  if (users.find(u => u.email === 'demo@familymed.com')) return;
-  const demoEmail = import.meta.env.VITE_DEMO_EMAIL || 'demo@familymed.com';
-  const demoPassword = import.meta.env.VITE_DEMO_PASSWORD || 'demo1234';
+  try {
+    let users = getUsers();
+    if (users.find(u => u.email === 'demo@familymed.com')) return;
+    const demoEmail = import.meta.env.VITE_DEMO_EMAIL || 'demo@familymed.com';
+    const demoPassword = import.meta.env.VITE_DEMO_PASSWORD || 'demo1234';
 
-  const demoUser = {
-    uid: 'demo_user_001', email: demoEmail,
-    name: 'Demo User', password: btoa(demoPassword),
-    createdAt: new Date().toISOString(), role: 'admin'
-  };
-  users.push(demoUser);
-  saveUsers(users);
-  // Seed demo family & records
-  const families = JSON.parse(localStorage.getItem('familymed_families') || '{}');
-  families['demo_user_001'] = getDemoFamily();
-  localStorage.setItem('familymed_families', JSON.stringify(families));
+    const demoUser = {
+      uid: 'demo_user_001', email: demoEmail,
+      name: 'Demo User', password: btoa(demoPassword),
+      createdAt: new Date().toISOString(), role: 'admin'
+    };
+    users.push(demoUser);
+    saveUsers(users);
+    
+    // Seed demo family & records
+    const families = JSON.parse(localStorage.getItem('familymed_families') || '{}');
+    families['demo_user_001'] = getDemoFamily();
+    localStorage.setItem('familymed_families', JSON.stringify(families));
+    console.log('Demo data seeded successfully');
+  } catch (e) {
+    console.error('Error seeding demo data:', e);
+  }
 }
 
 function getDemoFamily() {
