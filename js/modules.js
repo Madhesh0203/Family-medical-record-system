@@ -203,6 +203,10 @@ function renderSettings() {
     </div>`;
 
   // Security
+  const allUsers = getUsers();
+  const currentUser = allUsers.find(u => u.uid === session.uid);
+  const twoFaEnabled = currentUser?.twoFA || false;
+
   document.getElementById('settings-security').innerHTML = `
     <div class="card">
       <h2 style="font-size:18px;margin-bottom:8px;">Security & Privacy</h2>
@@ -210,7 +214,7 @@ function renderSettings() {
       <div class="settings-group">
         <h4>Access Control</h4>
         <div class="setting-row"><div class="setting-info"><span>Two-Factor Authentication</span><small>Extra security for your records</small></div>
-          <label class="toggle-switch"><input type="checkbox" id="twoFaToggle" onchange="showToast('Security updated','success')"><span class="toggle-track"></span></label>
+          <label class="toggle-switch"><input type="checkbox" id="twoFaToggle" ${twoFaEnabled ? 'checked' : ''} onchange="updateTwoFA(this.checked)"><span class="toggle-track"></span></label>
         </div>
         <div class="setting-row"><div class="setting-info"><span>Biometric Authentication</span><small>Use TouchID or FaceID where available</small></div>
           <label class="toggle-switch"><input type="checkbox" onchange="showToast('Biometric setting saved','success')"><span class="toggle-track"></span></label>
@@ -278,4 +282,16 @@ function exportCSV() {
   a.download = 'familymed_visits.csv';
   a.click();
   showToast('CSV Export successful', 'success');
+}
+
+function updateTwoFA(enabled) {
+  const session = getSession();
+  if (!session) return;
+  const users = getUsers();
+  const userIndex = users.findIndex(u => u.uid === session.uid);
+  if (userIndex !== -1) {
+    users[userIndex].twoFA = enabled;
+    saveUsers(users);
+    showToast('Security updated', 'success');
+  }
 }

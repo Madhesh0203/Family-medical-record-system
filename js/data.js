@@ -5,6 +5,13 @@ const SESSION_KEY = 'familymed_session';
 const FAMILIES_KEY = 'familymed_families';
 const USERS_KEY = 'familymed_users';
 
+function getUsers() {
+    return JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
+}
+function saveUsers(users) {
+    localStorage.setItem(USERS_KEY, JSON.stringify(users));
+}
+
 function getSession() {
     return JSON.parse(sessionStorage.getItem(SESSION_KEY) || localStorage.getItem(SESSION_KEY) || 'null');
 }
