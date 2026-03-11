@@ -1,5 +1,16 @@
 // ===================== FamilyMed Auth Logic =====================
 console.log('auth.js module loading...');
+
+// Initialize EmailJS
+(function() {
+  const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
+  if (publicKey && publicKey !== 'your_public_key') {
+    emailjs.init(publicKey);
+    console.log('EmailJS initialized successfully');
+  } else {
+    console.warn('EmailJS Public Key not set or using placeholder. Email sending will fail.');
+  }
+})();
 const STORAGE_KEY = 'familymed_users';
 const SESSION_KEY = 'familymed_session';
 
@@ -149,14 +160,21 @@ async function handleLogin() {
 
   // Check for 2FA
   if (user.twoFA) {
-    // Generate mock OTP
+    // Generate 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     window._pendingUser = user;
     window._generatedOtp = otp;
     
-    // Simulate sending email
-    console.log(`[OTP DEBUG] Sent OTP ${otp} to ${user.email}`);
-    alert(`[DEMO ONLY] Your verification code is: ${otp}`);
+    // Send real email via EmailJS
+    const sent = await sendOTPEmail(user, otp);
+    
+    if (sent) {
+      showSuccess('loginError', `✓ Verification code sent to ${user.email}`);
+    } else {
+      // Fallback for demo/debug if EmailJS is not configured
+      console.log(`[OTP DEBUG] Email sending failed or not configured. Use OTP: ${otp}`);
+      alert(`[SYSTEM] Real email sending failed. Using debug alert: Your verification code is: ${otp}`);
+    }
     
     btn.classList.remove('loading'); btn.querySelector('span').textContent = 'Sign In';
     document.getElementById('loginForm').style.display = 'none';
@@ -180,6 +198,31 @@ async function verifyOTP() {
     window.location.href = 'app.html';
   } else {
     showError('otpError', 'Invalid verification code. Please try again.');
+  }
+}
+
+async function sendOTPEmail(user, otp) {
+  const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID;
+  const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
+  
+  if (!serviceId || serviceId === 'your_service_id' || !templateId || templateId === 'your_template_id') {
+    return false;
+  }
+
+  const templateParams = {
+    to_name: user.name,
+    to_email: user.email,
+    otp_code: otp,
+    app_name: 'FamilyMed'
+  };
+
+  try {
+    await emailjs.send(serviceId, templateId, templateParams);
+    console.log(`OTP successfully sent to ${user.email}`);
+    return true;
+  } catch (error) {
+    console.error('Failed to send OTP email:', error);
+    return false;
   }
 }
 
