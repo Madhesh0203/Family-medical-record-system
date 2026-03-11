@@ -11,7 +11,7 @@ function renderProfiles() {
   const empty = document.getElementById('profilesEmpty');
   const addBtn = document.getElementById('addMemberBtn');
 
-  if (addBtn) addBtn.style.display = 'flex';
+  if (addBtn) addBtn.style.display = members.length >= 20 ? 'none' : 'flex';
   if (!members.length) {
     grid.innerHTML = '';
     empty.style.display = 'block';
@@ -76,6 +76,7 @@ function setActiveMember(id) {
 
 function openAddMemberModal() {
   const members = getMembers();
+  if (members.length >= 20) { showToast('Maximum 20 family members allowed', 'error'); return; }
   editingMemberId = null;
   window._memberPhotoData = null;
   document.getElementById('memberModalTitle').textContent = 'Add Family Member';
