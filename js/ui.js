@@ -270,7 +270,7 @@ function previewMemberPhoto(input) {
     reader.readAsDataURL(file);
 }
 
-// ---- Prescription upload simulation ----
+// ---- Prescription upload / Add Visit auto-fill ----
 function handlePrescriptionUpload(input) {
     const file = input.files[0];
     if (!file) return;
@@ -278,29 +278,91 @@ function handlePrescriptionUpload(input) {
     const status = document.getElementById('prescUploadStatus');
     if (status) status.textContent = `File ready: ${file.name}`;
 
+    // --- Auto-populate Visit form fields (only if empty) ---
+
+    // 1. Family Member: active or first member
+    const members = typeof getMembers === 'function' ? getMembers() : [];
+    const vMember = document.getElementById('vMember');
+    if (vMember && !vMember.value && members.length > 0) {
+        vMember.value = (typeof activeMemberId !== 'undefined' && activeMemberId) || members[0].id;
+    }
+
+    // 2. Visit Date: today
+    const vDate = document.getElementById('vDate');
+    if (vDate && !vDate.value) {
+        vDate.value = new Date().toISOString().split('T')[0];
+    }
+
+    // 3. Doctor Name: leave empty (cannot determine from filename)
+    // 4. Specialization: leave empty (cannot determine from filename)
+    // 5. Hospital / Clinic: leave empty (cannot determine from filename)
+
+    // --- Show OCR preview with file details ---
+    const selectedMember = members.find(m => m.id === (vMember && vMember.value)) || members[0];
     document.getElementById('ocrPreviewArea').style.display = 'block';
     const ocrLines = [
-        'Patient: ' + (getMembers()[0]?.name || 'Patient Name'),
+        'File: ' + file.name,
+        'Patient: ' + (selectedMember?.name || 'Patient Name'),
         'Date: ' + new Date().toLocaleDateString('en-IN'),
-        'Rx:',
-        '1. Tab. Amoxicillin 500mg  1-1-1 x 5 days',
-        '2. Tab. Paracetamol 500mg  1-0-1 x 5 days',
         '',
-        'Advice: Review in 1 week if symptoms persist.'
+        '(Upload to view full prescription content)'
     ];
     document.getElementById('ocrText').textContent = ocrLines.join('\n');
-
-    // Auto-fill demonstration
-    clearMedicineInputs();
-    document.querySelector('#medicineInputList input').value = 'Amoxicillin 500mg (1-1-1)';
-    addMedicineInput();
-    document.querySelectorAll('#medicineInputList input')[1].value = 'Paracetamol 500mg (1-0-1)';
 }
 
 function handleReportUpload(input) {
     const file = input.files[0];
     if (!file) return;
+
     const status = document.getElementById('rUploadStatus');
     if (status) status.textContent = `File ready: ${file.name}`;
     window._reportFileName = file.name;
+
+    // --- Auto-populate fields (only if they are empty) ---
+
+    // 1. Family Member: select active member or first member
+    const members = typeof getMembers === 'function' ? getMembers() : [];
+    const rMember = document.getElementById('rMember');
+    if (rMember && !rMember.value && members.length > 0) {
+        rMember.value = (typeof activeMemberId !== 'undefined' && activeMemberId) || members[0].id;
+    }
+
+    // 2. Report Date: today's date
+    const rDate = document.getElementById('rDate');
+    if (rDate && !rDate.value) {
+        rDate.value = new Date().toISOString().split('T')[0];
+    }
+
+    // 3. Report Name: cleaned-up filename (no extension)
+    const rName = document.getElementById('rName');
+    if (rName && !rName.value) {
+        const nameParts = file.name.split('.');
+        const nameWithoutExt = nameParts.length > 1 ? nameParts.slice(0, -1).join('.') : file.name;
+        rName.value = nameWithoutExt.replace(/[-_]+/g, ' ').trim();
+    }
+
+    // 4. Report Type: guess from filename keywords; leave empty if undetected
+    const rType = document.getElementById('rType');
+    if (rType && !rType.value) {
+        const lowerName = file.name.toLowerCase();
+        if (lowerName.includes('blood') || lowerName.includes('cbc') || lowerName.includes('haemoglobin') || lowerName.includes('hemoglobin')) {
+            rType.value = 'Blood Test';
+        } else if (lowerName.includes('xray') || lowerName.includes('x-ray') || lowerName.includes('x_ray')) {
+            rType.value = 'X-Ray';
+        } else if (lowerName.includes('mri')) {
+            rType.value = 'MRI';
+        } else if (lowerName.includes('ct') || lowerName.includes('ctscan') || lowerName.includes('ct_scan') || lowerName.includes('ct-scan')) {
+            rType.value = 'CT Scan';
+        } else if (lowerName.includes('ultrasound') || lowerName.includes('usg') || lowerName.includes('sonography')) {
+            rType.value = 'Ultrasound';
+        } else if (lowerName.includes('ecg') || lowerName.includes('ekg')) {
+            rType.value = 'ECG';
+        } else if (lowerName.includes('urine') || lowerName.includes('urinalysis')) {
+            rType.value = 'Urine Test';
+        }
+        // If nothing matched, leave as empty ("Select Type")
+    }
+
+    // 5. Referring Doctor: leave empty — cannot be determined from file name alone
+    // (User can fill it manually)
 }
