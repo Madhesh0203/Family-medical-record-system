@@ -44,9 +44,41 @@ function renderReports() {
         ${r.notes ? `<br><span style="color:#9ca3af;font-size:11px;">Note: ${r.notes.substring(0, 60)}...</span>` : ''}
       </div>
       <span class="report-member-tag">Member: ${getMemberName(r.memberId)}</span>
-      ${r.fileName ? `<div style="margin-top:10px;"><span style="font-size:11px;background:#f4f4f4;padding:4px 10px;border-radius:6px;color:#6b7280;display:inline-flex;align-items:center;gap:6px;">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-        ${r.fileName}</span></div>` : ''}
+      
+      <!-- Thumbnails / Upload Area -->
+      <div class="report-attachments-grid" style="margin-top:16px; border-top:1px solid #e5e7eb; padding-top:16px; display:flex; gap:8px; flex-wrap:wrap;">
+        ${(r.attachments && r.attachments.length > 0) ? r.attachments.map((att, i) => `
+          <div style="position:relative; width:64px; height:64px; border:1px solid #e2e8f0; border-radius:8px; overflow:hidden; background:#f8fafc; cursor:pointer;"
+               onclick="event.stopPropagation(); openReportFileViewer('${r.id}', ${i})">
+             ${(att.data.startsWith('data:image') || (att.type && att.type.startsWith('image/'))) 
+               ? `<img src="${att.data}" style="width:100%; height:100%; object-fit:cover;" title="${att.name}" />`
+               : `<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; color:#25CED1; padding:4px;" title="${att.name}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+                    </svg>
+                    <span style="font-size:9px; margin-top:2px; max-width:56px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#64748b;">${att.name || 'Doc'}</span>
+                  </div>`
+             }
+             <button style="position:absolute; top:2px; right:2px; background:rgba(239,68,68,0.9); color:white; border:none; border-radius:50%; width:16px; height:16px; font-size:10px; display:flex; align-items:center; justify-content:center; cursor:pointer;"
+                     onclick="event.stopPropagation(); deleteReportAttachment('${r.id}', ${i})" title="Remove file">✕</button>
+          </div>
+        `).join('') : ''}
+        
+        ${(!r.attachments || r.attachments.length < 5) ? `
+          <div style="width:64px; height:64px; border:2px dashed #e2e8f0; border-radius:8px; display:flex; align-items:center; justify-content:center; cursor:pointer; background:#f8fafc; transition:all 0.2s; flex-direction:column; padding:4px;"
+               onmouseover="this.style.borderColor='#25CED1'; this.style.background='rgba(37,206,209,0.05)';"
+               onmouseout="this.style.borderColor='#e2e8f0'; this.style.background='#f8fafc';"
+               ondragover="event.preventDefault(); this.style.borderColor='#25CED1'; this.style.background='rgba(37,206,209,0.1)';"
+               ondragleave="this.style.borderColor='#e2e8f0'; this.style.background='#f8fafc';"
+               ondrop="event.preventDefault(); this.style.borderColor='#e2e8f0'; this.style.background='#f8fafc'; handleDirectReportDrop(event, '${r.id}')"
+               onclick="event.stopPropagation(); triggerDirectReportUpload('${r.id}')" title="Upload up to 5 files">
+               <svg viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" width="16" height="16" style="margin-bottom:2px;">
+                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+               </svg>
+               <span style="font-size:9px; color:#94a3b8; text-align:center;">Add</span>
+          </div>
+        ` : ''}
+      </div>
     </div>`).join('');
 }
 
@@ -78,7 +110,7 @@ function saveReport() {
     id: uid(), memberId, date, type, name,
     doctor: document.getElementById('rDoctor').value.trim(),
     notes: document.getElementById('rNotes').value.trim(),
-    fileName: window._reportFileName || null
+    attachments: [] // We persist an attachments array instead of single fileName
   });
   saveReports(reports);
   closeReportModal();
@@ -91,6 +123,116 @@ function deleteReport(id) {
   saveReports(getReports().filter(r => r.id !== id));
   renderReports();
   showToast('Report deleted', 'info');
+}
+
+// --- Direct Report Upload Functions ---
+
+let currentDirectReportUploadId = null;
+
+function triggerDirectReportUpload(reportId) {
+    currentDirectReportUploadId = reportId;
+    document.getElementById('directReportUpload').click();
+}
+
+function handleDirectReportDrop(e, reportId) {
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        currentDirectReportUploadId = reportId;
+        const input = { files: e.dataTransfer.files };
+        handleDirectReportUpload(input);
+    }
+}
+
+function handleDirectReportUpload(input) {
+    if (!input.files || input.files.length === 0 || !currentDirectReportUploadId) return;
+    
+    let reports = getReports();
+    const idx = reports.findIndex(r => r.id === currentDirectReportUploadId);
+    if (idx === -1) return;
+    
+    if (!reports[idx].attachments) reports[idx].attachments = [];
+    
+    if (reports[idx].attachments.length + input.files.length > 5) {
+        showToast('Maximum 5 files allowed for this report.', 'error');
+        if (input.value !== undefined) input.value = '';
+        return;
+    }
+    
+    const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    
+    let processedFiles = 0;
+    const filesToProcess = Array.from(input.files);
+    
+    filesToProcess.forEach(file => {
+        if (!file.name.match(/\.(pdf|doc|docx|jpg|jpeg|png)$/i)) {
+            showToast(`Skipped ${file.name}: Invalid format.`, 'error');
+            processedFiles++;
+            checkDone();
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            reports[idx].attachments.push({
+                data: e.target.result,
+                name: file.name,
+                type: file.type || (file.name.match(/\.pdf$/i) ? 'application/pdf' : '')
+            });
+            processedFiles++;
+            checkDone();
+        };
+        reader.readAsDataURL(file);
+    });
+    
+    function checkDone() {
+        if (processedFiles === filesToProcess.length) {
+            saveReports(reports);
+            renderReports();
+            showToast('Files attached successfully', 'success');
+            if (input.value !== undefined) input.value = '';
+            currentDirectReportUploadId = null;
+        }
+    }
+}
+
+function deleteReportAttachment(reportId, attachmentIndex) {
+    if (!confirm('Are you sure you want to remove this file?')) return;
+    
+    let reports = getReports();
+    const idx = reports.findIndex(r => r.id === reportId);
+    if (idx !== -1 && reports[idx].attachments) {
+        reports[idx].attachments.splice(attachmentIndex, 1);
+        saveReports(reports);
+        renderReports();
+        showToast('File removed', 'info');
+    }
+}
+
+function openReportFileViewer(reportId, attachmentIndex) {
+    let reports = getReports();
+    const r = reports.find(x => x.id === reportId);
+    if (!r || !r.attachments || r.attachments.length <= attachmentIndex) return;
+    
+    const att = r.attachments[attachmentIndex];
+    if (!att) return;
+    
+    const isImage = att.data.startsWith('data:image') || (att.type && att.type.startsWith('image/'));
+    
+    if (isImage) {
+        document.getElementById('fileViewerModal').style.display = 'flex';
+        const imgEl = document.getElementById('fileViewerImg');
+        const docEl = document.getElementById('fileViewerDoc');
+        if (imgEl) {
+            imgEl.src = att.data;
+            imgEl.style.display = 'block';
+        }
+        if (docEl) docEl.style.display = 'none';
+        
+    } else {
+        const a = document.createElement('a');
+        a.href = att.data;
+        a.download = att.name || 'document';
+        a.click();
+    }
 }
 
 // ============================================================
