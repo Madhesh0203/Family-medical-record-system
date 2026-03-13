@@ -67,17 +67,22 @@
                 zone.style.borderColor = ''; zone.style.background = '';
                 const file = e.dataTransfer.files[0];
                 if (!file) return;
+                
+                const dt = new DataTransfer(); 
+                Array.from(e.dataTransfer.files).forEach(f => dt.items.add(f));
+                
                 if (id === 'prescriptionUploadZone') {
-                    const dt = new DataTransfer(); dt.items.add(file);
                     const fileInput = document.getElementById('prescriptionFile');
                     if (fileInput) {
                         fileInput.files = dt.files;
                         handlePrescriptionUpload({ files: dt.files });
                     }
                 } else {
-                    window._reportFileName = file.name;
-                    const status = document.getElementById('rUploadStatus');
-                    if (status) status.textContent = `✓ ${file.name} ready to upload`;
+                    const fileInput = document.getElementById('reportFile');
+                    if (fileInput) {
+                        fileInput.files = dt.files;
+                        if (window.handleReportUpload) window.handleReportUpload({ files: dt.files });
+                    }
                 }
             });
         });

@@ -90,7 +90,8 @@ function openAddReportModal() {
   document.getElementById('rType').value = '';
   const status = document.getElementById('rUploadStatus');
   if (status) status.textContent = '';
-  window._reportFileName = null;
+  
+  window._tempReportAttachments = [];
   
   const previewArea = document.getElementById('reportImgPreviewArea');
   if (previewArea) previewArea.style.display = 'none';
@@ -110,13 +111,76 @@ function saveReport() {
     id: uid(), memberId, date, type, name,
     doctor: document.getElementById('rDoctor').value.trim(),
     notes: document.getElementById('rNotes').value.trim(),
-    attachments: [] // We persist an attachments array instead of single fileName
+    attachments: window._tempReportAttachments ? [...window._tempReportAttachments] : []
   });
   saveReports(reports);
   closeReportModal();
   renderReports();
   showToast('Report uploaded', 'success');
 }
+
+window.handleReportUpload = function(input) {
+  if (!input.files || input.files.length === 0) return;
+  
+  if (!window._tempReportAttachments) window._tempReportAttachments = [];
+  
+  if (window._tempReportAttachments.length + input.files.length > 5) {
+      showToast('Maximum 5 files allowed for this report.', 'error');
+      if (input.value !== undefined) input.value = '';
+      return;
+  }
+  
+  let processedFiles = 0;
+  const filesToProcess = Array.from(input.files);
+  const status = document.getElementById('rUploadStatus');
+  
+  filesToProcess.forEach(file => {
+      if (!file.name.match(/\.(pdf|doc|docx|jpg|jpeg|png)$/i)) {
+          showToast(`Skipped ${file.name}: Invalid format.`, 'error');
+          processedFiles++;
+          checkDone();
+          return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+          window._tempReportAttachments.push({
+              data: e.target.result,
+              name: file.name,
+              type: file.type || (file.name.match(/\.pdf$/i) ? 'application/pdf' : '')
+          });
+          processedFiles++;
+          checkDone();
+      };
+      reader.readAsDataURL(file);
+  });
+  
+  function checkDone() {
+      if (processedFiles === filesToProcess.length) {
+          if (status) status.textContent = `✓ ${window._tempReportAttachments.length} file(s) attached`;
+          if (input.value !== undefined) input.value = '';
+          
+          // Show the first image in the modal preview area (if any image exists)
+          const firstImage = window._tempReportAttachments.find(att => att.data.startsWith('data:image') || (att.type && att.type.startsWith('image/')));
+          const previewArea = document.getElementById('reportImgPreviewArea');
+          const previewPic = document.getElementById('reportImgPreviewPic');
+          const previewPlaceholder = document.getElementById('reportFilePreviewPlaceholder');
+          
+          if (previewArea) {
+              previewArea.style.display = 'block';
+              if (firstImage) {
+                  previewPic.src = firstImage.data;
+                  previewPic.style.display = 'block';
+                  previewPlaceholder.style.display = 'none';
+              } else {
+                  previewPic.style.display = 'none';
+                  previewPlaceholder.style.display = 'block';
+                  previewPlaceholder.textContent = `${window._tempReportAttachments.length} document(s) attached.`;
+              }
+          }
+      }
+  }
+};
 
 function deleteReport(id) {
   if (!confirm('Are you sure you want to delete this report?')) return;
