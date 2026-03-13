@@ -1,6 +1,7 @@
 // ============================================================
 // REPORTS.JS - Lab reports management
 // ============================================================
+let editingReportId = null;
 function renderReports() {
   const memberFilter = document.getElementById('reportMemberFilter')?.value || '';
   const typeFilter = document.getElementById('reportTypeFilter')?.value || '';
@@ -32,9 +33,14 @@ function renderReports() {
 
   grid.innerHTML = reports.map(r =>
     `<div class="report-card">
-      <button class="delete-btn" onclick="deleteReport('${r.id}')" title="Delete">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3,6 5,6 21,6"/><path d="M19,6l-1,14a2,2,0,0,1-2,2H8a2,2,0,0,1-2-2L5,6"/><path d="M10,11v6"/><path d="M14,11v6"/></svg>
-      </button>
+      <div class="report-actions" style="position:absolute; top:12px; right:12px; display:flex; gap:8px;">
+        <button class="delete-btn" onclick="editReport('${r.id}')" title="Edit" style="position:static; width:32px; height:32px; background:rgba(37,206,209,0.1); color:#25CED1; border:none; border-radius:8px; display:flex; align-items:center; justify-content:center; cursor:pointer;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </button>
+        <button class="delete-btn" onclick="deleteReport('${r.id}')" title="Delete" style="position:static; width:32px; height:32px; background:rgba(239,68,68,0.1); color:#ef4444;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="3,6 5,6 21,6"/><path d="M19,6l-1,14a2,2,0,0,1-2,2H8a2,2,0,0,1-2-2L5,6"/><path d="M10,11v6"/><path d="M14,11v6"/></svg>
+        </button>
+      </div>
       <div class="report-icon" style="background:${typeColors[r.type] || typeColors['Other']}">${getReportIcon(r.type)}</div>
       <div class="report-type-badge">${r.type}</div>
       <div class="report-name">${r.name}</div>
@@ -84,6 +90,9 @@ function renderReports() {
 
 function openAddReportModal() {
   if (!getMembers().length) { showToast('Add a family member first', 'error'); showPage('profiles'); return; }
+  editingReportId = null;
+  document.querySelector('#reportModal h3').textContent = 'Upload Lab Report';
+  
   ['rDate', 'rDoctor', 'rName', 'rNotes'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
   document.getElementById('rMember').value = activeMemberId || '';
   document.getElementById('rDate').value = new Date().toISOString().split('T')[0];
@@ -98,6 +107,29 @@ function openAddReportModal() {
 
   document.getElementById('reportModal').style.display = 'flex';
 }
+
+function editReport(id) {
+  const r = getReports().find(x => x.id === id);
+  if (!r) return;
+  
+  editingReportId = id;
+  document.querySelector('#reportModal h3').textContent = 'Edit Lab Report';
+  
+  document.getElementById('rMember').value = r.memberId || '';
+  document.getElementById('rDate').value = r.date || '';
+  document.getElementById('rType').value = r.type || '';
+  document.getElementById('rDoctor').value = r.doctor || '';
+  document.getElementById('rName').value = r.name || '';
+  document.getElementById('rNotes').value = r.notes || '';
+  
+  const status = document.getElementById('rUploadStatus');
+  if (status) status.textContent = r.attachments?.length ? `✓ ${r.attachments.length} file(s) attached` : '';
+  
+  window._tempReportAttachments = r.attachments ? [...r.attachments] : [];
+  updateReportModalPreview();
+
+  document.getElementById('reportModal').style.display = 'flex';
+}
 function closeReportModal() { document.getElementById('reportModal').style.display = 'none'; }
 
 function saveReport() {
@@ -106,17 +138,28 @@ function saveReport() {
   const type = document.getElementById('rType').value;
   const name = document.getElementById('rName').value.trim();
   if (!memberId || !date || !type || !name) { showToast('Please fill all required fields', 'error'); return; }
+  
   const reports = getReports();
-  reports.push({
-    id: uid(), memberId, date, type, name,
+  const reportData = {
+    memberId, date, type, name,
     doctor: document.getElementById('rDoctor').value.trim(),
     notes: document.getElementById('rNotes').value.trim(),
     attachments: window._tempReportAttachments ? [...window._tempReportAttachments] : []
-  });
+  };
+
+  if (editingReportId) {
+    const idx = reports.findIndex(r => r.id === editingReportId);
+    if (idx !== -1) {
+      reports[idx] = { ...reports[idx], ...reportData };
+    }
+  } else {
+    reports.push({ id: uid(), ...reportData });
+  }
+
   saveReports(reports);
   closeReportModal();
   renderReports();
-  showToast('Report uploaded', 'success');
+  showToast(editingReportId ? 'Report updated' : 'Report uploaded', 'success');
 }
 
 window.handleReportUpload = function(input) {
@@ -130,6 +173,25 @@ window.handleReportUpload = function(input) {
       return;
   }
   
+  // --- Auto-populate fields (only if they are empty) ---
+  const members = typeof getMembers === 'function' ? getMembers() : [];
+  const rMember = document.getElementById('rMember');
+  if (rMember && (!rMember.value || rMember.value === "") && members.length > 0) {
+      rMember.value = (typeof activeMemberId !== 'undefined' && activeMemberId) || members[0].id;
+  }
+
+  const rDate = document.getElementById('rDate');
+  if (rDate && !rDate.value) {
+      rDate.value = new Date().toISOString().split('T')[0];
+  }
+
+  const firstFile = input.files[0];
+  const rName = document.getElementById('rName');
+  if (rName && !rName.value && firstFile) {
+      const nameParts = firstFile.name.split('.');
+      rName.value = (nameParts.length > 1 ? nameParts.slice(0, -1).join('.') : firstFile.name).replace(/[-_]+/g, ' ').trim();
+  }
+
   let processedFiles = 0;
   const filesToProcess = Array.from(input.files);
   const status = document.getElementById('rUploadStatus');
@@ -160,27 +222,50 @@ window.handleReportUpload = function(input) {
           if (status) status.textContent = `✓ ${window._tempReportAttachments.length} file(s) attached`;
           if (input.value !== undefined) input.value = '';
           
-          // Show the first image in the modal preview area (if any image exists)
-          const firstImage = window._tempReportAttachments.find(att => att.data.startsWith('data:image') || (att.type && att.type.startsWith('image/')));
-          const previewArea = document.getElementById('reportImgPreviewArea');
-          const previewPic = document.getElementById('reportImgPreviewPic');
-          const previewPlaceholder = document.getElementById('reportFilePreviewPlaceholder');
-          
-          if (previewArea) {
-              previewArea.style.display = 'block';
-              if (firstImage) {
-                  previewPic.src = firstImage.data;
-                  previewPic.style.display = 'block';
-                  previewPlaceholder.style.display = 'none';
-              } else {
-                  previewPic.style.display = 'none';
-                  previewPlaceholder.style.display = 'block';
-                  previewPlaceholder.textContent = `${window._tempReportAttachments.length} document(s) attached.`;
-              }
-          }
+          updateReportModalPreview();
       }
   }
 };
+
+function updateReportModalPreview() {
+    const previewArea = document.getElementById('reportImgPreviewArea');
+    const previewPic = document.getElementById('reportImgPreviewPic');
+    const previewPlaceholder = document.getElementById('reportFilePreviewPlaceholder');
+    
+    if (!previewArea) return;
+
+    if (!window._tempReportAttachments || window._tempReportAttachments.length === 0) {
+        previewArea.style.display = 'none';
+        return;
+    }
+
+    previewArea.style.display = 'block';
+    
+    // Create a mini-grid inside the placeholder for multiple files
+    previewPlaceholder.style.display = 'block';
+    previewPlaceholder.innerHTML = `
+        <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:center; padding:10px;">
+            ${window._tempReportAttachments.map((att, i) => `
+                <div style="position:relative; width:50px; height:50px; border:1px solid #e2e8f0; border-radius:6px; overflow:hidden; background:white;">
+                    ${(att.data.startsWith('data:image') || (att.type && att.type.startsWith('image/'))) 
+                        ? `<img src="${att.data}" style="width:100%; height:100%; object-fit:cover;" />`
+                        : `<div style="display:flex; align-items:center; justify-content:center; height:100%; color:#25CED1;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+                            </svg>
+                           </div>`
+                    }
+                    <button onclick="window._tempReportAttachments.splice(${i}, 1); updateReportModalPreview(); event.stopPropagation();" 
+                            style="position:absolute; top:1px; right:1px; background:rgba(239,68,68,0.9); color:white; border:none; border-radius:50%; width:14px; height:14px; font-size:8px; display:flex; align-items:center; justify-content:center; cursor:pointer;">✕</button>
+                </div>
+            `).join('')}
+        </div>
+        <div style="font-size:12px; margin-top:4px; color:#64748b;">${window._tempReportAttachments.length} file(s) ready</div>
+    `;
+    
+    // Hide the single preview pic as we now have a mini-grid
+    if (previewPic) previewPic.style.display = 'none';
+}
 
 function deleteReport(id) {
   if (!confirm('Are you sure you want to delete this report?')) return;
