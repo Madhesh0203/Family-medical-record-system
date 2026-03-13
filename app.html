@@ -11,6 +11,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
         rel="stylesheet" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <link rel="stylesheet" href="css/app.css" />
 </head>
 
@@ -589,18 +590,21 @@
                     <input type="file" id="prescriptionFile" accept="image/*,.pdf" style="display:none;"
                         onchange="handlePrescriptionUpload(this)" />
                 </div>
-                <!-- OCR Preview -->
-                <div id="ocrPreviewArea" style="display:none;">
-                    <div class="ocr-box">
-                        <div class="ocr-header">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <!-- Image Preview -->
+                <div id="imgPreviewArea" style="display:none; margin-top:16px;">
+                    <div style="border:1px solid #e5e7eb; border-radius:12px; overflow:hidden; background:#f9fafb;">
+                        <div style="padding:12px 16px; background:white; border-bottom:1px solid #e5e7eb; display:flex; align-items:center; gap:8px;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="#25CED1" stroke-width="2" width="20" height="20">
                                 <rect x="3" y="3" width="18" height="18" rx="2" />
-                                <path d="M9 9h.01M15 9h.01M9 15h6" />
+                                <circle cx="8.5" cy="8.5" r="1.5" />
+                                <path d="M21 15l-5-5L5 21" />
                             </svg>
-                            <span>OCR Extracted Text</span>
-                            <span class="ocr-badge">Auto-extracted</span>
+                            <span style="font-size:14px; font-weight:600; color:#1a1a2e;">File Preview</span>
                         </div>
-                        <p id="ocrText" class="ocr-text"></p>
+                        <div style="padding:16px; text-align:center;">
+                            <img id="imgPreviewPic" style="max-width:100%; max-height:300px; border-radius:8px; display:none; margin:0 auto;" />
+                            <div id="filePreviewPlaceholder" style="font-size:14px; color:#6b7280; padding:20px 0; display:none;"></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -669,6 +673,23 @@
                 </div>
                 <div class="form-group"><label>Notes</label><textarea id="rNotes" rows="2"
                         placeholder="Any additional notes about this report..."></textarea></div>
+                <!-- Report Image Preview -->
+                <div id="reportImgPreviewArea" style="display:none; margin-top:16px;">
+                    <div style="border:1px solid #e5e7eb; border-radius:12px; overflow:hidden; background:#f9fafb;">
+                        <div style="padding:12px 16px; background:white; border-bottom:1px solid #e5e7eb; display:flex; align-items:center; gap:8px;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="#25CED1" stroke-width="2" width="20" height="20">
+                                <rect x="3" y="3" width="18" height="18" rx="2" />
+                                <circle cx="8.5" cy="8.5" r="1.5" />
+                                <path d="M21 15l-5-5L5 21" />
+                            </svg>
+                            <span style="font-size:14px; font-weight:600; color:#1a1a2e;">File Preview</span>
+                        </div>
+                        <div style="padding:16px; text-align:center;">
+                            <img id="reportImgPreviewPic" style="max-width:100%; max-height:300px; border-radius:8px; display:none; margin:0 auto;" />
+                            <div id="reportFilePreviewPlaceholder" style="font-size:14px; color:#6b7280; padding:20px 0; display:none;"></div>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="modal-footer">
                 <button class="btn-secondary" onclick="closeReportModal()">Cancel</button>
@@ -691,6 +712,26 @@
                     onclick="document.getElementById('visitDetailModal').style.display='none'">✕</button>
             </div>
             <div id="visitDetailContent" class="modal-body"></div>
+        </div>
+    </div>
+
+    <!-- DIRECT UPLOAD HIDDEN INPUT -->
+    <input type="file" id="directVisitUpload" accept="image/jpeg,image/png,image/jpg,.pdf,.doc,.docx" multiple style="display:none;" onchange="handleDirectVisitUpload(this)" />
+
+    <!-- FILE PREVIEW MODAL -->
+    <div class="modal-overlay" id="fileViewerModal" style="display:none; z-index: 9999;">
+        <div class="modal-box modal-lg" style="background: transparent; box-shadow: none; padding: 0; margin-top: 40px;">
+            <div style="position: relative; text-align: center;">
+                <button class="modal-close" style="background: white; border-radius: 50%; width: 40px; height: 40px; right: -20px; top: -50px; position: absolute; font-size: 20px; color:#1a1a2e;" onclick="document.getElementById('fileViewerModal').style.display='none'">✕</button>
+                <img id="fileViewerImg" style="max-width: 100%; max-height: 80vh; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); display:none; margin: 0 auto; object-fit: contain; background: white;" />
+                <div id="fileViewerDoc" style="display:none; background: white; padding: 40px; border-radius: 12px; max-width: 400px; margin: 0 auto; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#25CED1" stroke-width="1.5" width="64" height="64" style="margin-bottom: 16px;">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+                    </svg>
+                    <h3 id="fileViewerDocName" style="margin-bottom: 24px; color: #1a1a2e; word-break: break-all;">Document</h3>
+                    <button class="btn-primary" id="fileViewerDownloadBtn" style="width: 100%;">Download Document</button>
+                </div>
+            </div>
         </div>
     </div>
 

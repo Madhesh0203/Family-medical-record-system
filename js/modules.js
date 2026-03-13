@@ -59,6 +59,10 @@ function openAddReportModal() {
   const status = document.getElementById('rUploadStatus');
   if (status) status.textContent = '';
   window._reportFileName = null;
+  
+  const previewArea = document.getElementById('reportImgPreviewArea');
+  if (previewArea) previewArea.style.display = 'none';
+
   document.getElementById('reportModal').style.display = 'flex';
 }
 function closeReportModal() { document.getElementById('reportModal').style.display = 'none'; }

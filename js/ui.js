@@ -279,35 +279,41 @@ function handlePrescriptionUpload(input) {
     if (status) status.textContent = `File ready: ${file.name}`;
 
     // --- Auto-populate Visit form fields (only if empty) ---
-
-    // 1. Family Member: active or first member
     const members = typeof getMembers === 'function' ? getMembers() : [];
     const vMember = document.getElementById('vMember');
     if (vMember && !vMember.value && members.length > 0) {
         vMember.value = (typeof activeMemberId !== 'undefined' && activeMemberId) || members[0].id;
     }
 
-    // 2. Visit Date: today
     const vDate = document.getElementById('vDate');
     if (vDate && !vDate.value) {
         vDate.value = new Date().toISOString().split('T')[0];
     }
 
-    // 3. Doctor Name: leave empty (cannot determine from filename)
-    // 4. Specialization: leave empty (cannot determine from filename)
-    // 5. Hospital / Clinic: leave empty (cannot determine from filename)
+    // --- Show File Preview ---
+    const previewArea = document.getElementById('imgPreviewArea');
+    const imgEl = document.getElementById('imgPreviewPic');
+    const placeholderEl = document.getElementById('filePreviewPlaceholder');
 
-    // --- Show OCR preview with file details ---
-    const selectedMember = members.find(m => m.id === (vMember && vMember.value)) || members[0];
-    document.getElementById('ocrPreviewArea').style.display = 'block';
-    const ocrLines = [
-        'File: ' + file.name,
-        'Patient: ' + (selectedMember?.name || 'Patient Name'),
-        'Date: ' + new Date().toLocaleDateString('en-IN'),
-        '',
-        '(Upload to view full prescription content)'
-    ];
-    document.getElementById('ocrText').textContent = ocrLines.join('\n');
+    if (previewArea) previewArea.style.display = 'block';
+
+    if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            if (imgEl) {
+                imgEl.src = e.target.result;
+                imgEl.style.display = 'block';
+            }
+            if (placeholderEl) placeholderEl.style.display = 'none';
+        }
+        reader.readAsDataURL(file);
+    } else {
+        if (imgEl) imgEl.style.display = 'none';
+        if (placeholderEl) {
+            placeholderEl.textContent = `Document ready: ${file.name}`;
+            placeholderEl.style.display = 'block';
+        }
+    }
 }
 
 function handleReportUpload(input) {
@@ -319,50 +325,45 @@ function handleReportUpload(input) {
     window._reportFileName = file.name;
 
     // --- Auto-populate fields (only if they are empty) ---
-
-    // 1. Family Member: select active member or first member
     const members = typeof getMembers === 'function' ? getMembers() : [];
     const rMember = document.getElementById('rMember');
     if (rMember && !rMember.value && members.length > 0) {
         rMember.value = (typeof activeMemberId !== 'undefined' && activeMemberId) || members[0].id;
     }
 
-    // 2. Report Date: today's date
     const rDate = document.getElementById('rDate');
     if (rDate && !rDate.value) {
         rDate.value = new Date().toISOString().split('T')[0];
     }
 
-    // 3. Report Name: cleaned-up filename (no extension)
     const rName = document.getElementById('rName');
     if (rName && !rName.value) {
         const nameParts = file.name.split('.');
-        const nameWithoutExt = nameParts.length > 1 ? nameParts.slice(0, -1).join('.') : file.name;
-        rName.value = nameWithoutExt.replace(/[-_]+/g, ' ').trim();
+        rName.value = (nameParts.length > 1 ? nameParts.slice(0, -1).join('.') : file.name).replace(/[-_]+/g, ' ').trim();
     }
 
-    // 4. Report Type: guess from filename keywords; leave empty if undetected
-    const rType = document.getElementById('rType');
-    if (rType && !rType.value) {
-        const lowerName = file.name.toLowerCase();
-        if (lowerName.includes('blood') || lowerName.includes('cbc') || lowerName.includes('haemoglobin') || lowerName.includes('hemoglobin')) {
-            rType.value = 'Blood Test';
-        } else if (lowerName.includes('xray') || lowerName.includes('x-ray') || lowerName.includes('x_ray')) {
-            rType.value = 'X-Ray';
-        } else if (lowerName.includes('mri')) {
-            rType.value = 'MRI';
-        } else if (lowerName.includes('ct') || lowerName.includes('ctscan') || lowerName.includes('ct_scan') || lowerName.includes('ct-scan')) {
-            rType.value = 'CT Scan';
-        } else if (lowerName.includes('ultrasound') || lowerName.includes('usg') || lowerName.includes('sonography')) {
-            rType.value = 'Ultrasound';
-        } else if (lowerName.includes('ecg') || lowerName.includes('ekg')) {
-            rType.value = 'ECG';
-        } else if (lowerName.includes('urine') || lowerName.includes('urinalysis')) {
-            rType.value = 'Urine Test';
+    // --- Show File Preview ---
+    const previewArea = document.getElementById('reportImgPreviewArea');
+    const imgEl = document.getElementById('reportImgPreviewPic');
+    const placeholderEl = document.getElementById('reportFilePreviewPlaceholder');
+
+    if (previewArea) previewArea.style.display = 'block';
+
+    if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            if (imgEl) {
+                imgEl.src = e.target.result;
+                imgEl.style.display = 'block';
+            }
+            if (placeholderEl) placeholderEl.style.display = 'none';
         }
-        // If nothing matched, leave as empty ("Select Type")
+        reader.readAsDataURL(file);
+    } else {
+        if (imgEl) imgEl.style.display = 'none';
+        if (placeholderEl) {
+            placeholderEl.textContent = `Document ready: ${file.name}`;
+            placeholderEl.style.display = 'block';
+        }
     }
-
-    // 5. Referring Doctor: leave empty — cannot be determined from file name alone
-    // (User can fill it manually)
 }
