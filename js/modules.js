@@ -2,6 +2,32 @@
 // REPORTS.JS - Lab reports management
 // ============================================================
 let editingReportId = null;
+
+// Compress an image data URL to max dimensions & JPEG quality before storage
+function compressAttachment(dataUrl, fileName, fileType, callback) {
+    // Only compress images; pass non-images through unchanged
+    if (!dataUrl.startsWith('data:image')) {
+        callback({ data: dataUrl, name: fileName, type: fileType });
+        return;
+    }
+    const img = new Image();
+    img.onload = function() {
+        const MAX = 1000;
+        let w = img.width, h = img.height;
+        if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
+        if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        const compressed = canvas.toDataURL('image/jpeg', 0.75);
+        callback({ data: compressed, name: fileName.replace(/\.[^.]+$/, '.jpg'), type: 'image/jpeg' });
+    };
+    img.onerror = function() {
+        // If compression fails, fall back to original
+        callback({ data: dataUrl, name: fileName, type: fileType });
+    };
+    img.src = dataUrl;
+}
 function renderReports() {
   const memberFilter = document.getElementById('reportMemberFilter')?.value || '';
   const typeFilter = document.getElementById('reportTypeFilter')?.value || '';
@@ -56,14 +82,16 @@ function renderReports() {
         ${(r.attachments && r.attachments.length > 0) ? r.attachments.map((att, i) => `
           <div style="position:relative; width:64px; height:64px; border:1px solid #e2e8f0; border-radius:8px; overflow:hidden; background:#f8fafc; cursor:pointer;"
                onclick="event.stopPropagation(); openReportFileViewer('${r.id}', ${i})">
-             ${(att.data.startsWith('data:image') || (att.type && att.type.startsWith('image/'))) 
+             ${(att.data && (att.data.startsWith('data:image') || (att.type && att.type.startsWith('image/'))))
                ? `<img src="${att.data}" style="width:100%; height:100%; object-fit:cover;" title="${att.name}" />`
-               : `<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; color:#25CED1; padding:4px;" title="${att.name}">
+               : att.data
+                 ? `<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; color:#25CED1; padding:4px;" title="${att.name}">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
                       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
                     </svg>
                     <span style="font-size:9px; margin-top:2px; max-width:56px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#64748b;">${att.name || 'Doc'}</span>
-                  </div>`
+                   </div>`
+                 : `<div style="display:flex; align-items:center; justify-content:center; height:100%; color:#d1d5db; font-size:9px;">No data</div>`
              }
              <button style="position:absolute; top:2px; right:2px; background:rgba(239,68,68,0.9); color:white; border:none; border-radius:50%; width:16px; height:16px; font-size:10px; display:flex; align-items:center; justify-content:center; cursor:pointer;"
                      onclick="event.stopPropagation(); deleteReportAttachment('${r.id}', ${i})" title="Remove file">✕</button>
@@ -206,13 +234,12 @@ window.handleReportUpload = function(input) {
 
       const reader = new FileReader();
       reader.onload = function(e) {
-          window._tempReportAttachments.push({
-              data: e.target.result,
-              name: file.name,
-              type: file.type || (file.name.match(/\.pdf$/i) ? 'application/pdf' : '')
+          const fileType = file.type || (file.name.match(/\.pdf$/i) ? 'application/pdf' : '');
+          compressAttachment(e.target.result, file.name, fileType, function(att) {
+              window._tempReportAttachments.push(att);
+              processedFiles++;
+              checkDone();
           });
-          processedFiles++;
-          checkDone();
       };
       reader.readAsDataURL(file);
   });
@@ -247,7 +274,7 @@ function updateReportModalPreview() {
         <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:center; padding:10px;">
             ${window._tempReportAttachments.map((att, i) => `
                 <div style="position:relative; width:50px; height:50px; border:1px solid #e2e8f0; border-radius:6px; overflow:hidden; background:white;">
-                    ${(att.data.startsWith('data:image') || (att.type && att.type.startsWith('image/'))) 
+                    ${(att.data && (att.data.startsWith('data:image') || (att.type && att.type.startsWith('image/'))))
                         ? `<img src="${att.data}" style="width:100%; height:100%; object-fit:cover;" />`
                         : `<div style="display:flex; align-items:center; justify-content:center; height:100%; color:#25CED1;">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
@@ -321,13 +348,12 @@ function handleDirectReportUpload(input) {
 
         const reader = new FileReader();
         reader.onload = function(e) {
-            reports[idx].attachments.push({
-                data: e.target.result,
-                name: file.name,
-                type: file.type || (file.name.match(/\.pdf$/i) ? 'application/pdf' : '')
+            const fileType = file.type || (file.name.match(/\.pdf$/i) ? 'application/pdf' : '');
+            compressAttachment(e.target.result, file.name, fileType, function(att) {
+                reports[idx].attachments.push(att);
+                processedFiles++;
+                checkDone();
             });
-            processedFiles++;
-            checkDone();
         };
         reader.readAsDataURL(file);
     });
@@ -362,12 +388,15 @@ function openReportFileViewer(reportId, attachmentIndex) {
     if (!r || !r.attachments || r.attachments.length <= attachmentIndex) return;
     
     const att = r.attachments[attachmentIndex];
-    if (!att) return;
+    if (!att || !att.data) {
+        showToast('File data not available', 'error');
+        return;
+    }
     
     const isImage = att.data.startsWith('data:image') || (att.type && att.type.startsWith('image/'));
     
     if (isImage) {
-        document.getElementById('fileViewerModal').style.display = 'flex';
+        const modal = document.getElementById('fileViewerModal');
         const imgEl = document.getElementById('fileViewerImg');
         const docEl = document.getElementById('fileViewerDoc');
         if (imgEl) {
@@ -375,12 +404,26 @@ function openReportFileViewer(reportId, attachmentIndex) {
             imgEl.style.display = 'block';
         }
         if (docEl) docEl.style.display = 'none';
-        
+        if (modal) modal.style.display = 'flex';
     } else {
-        const a = document.createElement('a');
-        a.href = att.data;
-        a.download = att.name || 'document';
-        a.click();
+        // For non-image files, show in the modal with a download button
+        const modal = document.getElementById('fileViewerModal');
+        const imgEl = document.getElementById('fileViewerImg');
+        const docEl = document.getElementById('fileViewerDoc');
+        const docName = document.getElementById('fileViewerDocName');
+        const dlBtn = document.getElementById('fileViewerDownloadBtn');
+        if (imgEl) imgEl.style.display = 'none';
+        if (docEl) docEl.style.display = 'block';
+        if (docName) docName.textContent = att.name || 'Document';
+        if (dlBtn) {
+            dlBtn.onclick = function() {
+                const a = document.createElement('a');
+                a.href = att.data;
+                a.download = att.name || 'document';
+                a.click();
+            };
+        }
+        if (modal) modal.style.display = 'flex';
     }
 }
 
