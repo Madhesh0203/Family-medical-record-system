@@ -694,6 +694,40 @@
         </div>
     </div>
 
+    <!-- DIRECT UPLOAD HIDDEN INPUT -->
+    <input type="file" id="directVisitUpload" accept="image/jpeg,image/png,image/jpg,.pdf,.doc,.docx" multiple style="display:none;" onchange="handleDirectVisitUpload(this)" />
+    <input type="file" id="directReportUpload" accept="image/jpeg,image/png,image/jpg,.pdf,.doc,.docx" multiple style="display:none;" onchange="handleDirectReportUpload(this)" />
+
+    <!-- FILE PREVIEW MODAL -->
+    <div class="modal-overlay" id="fileViewerModal" style="display:none; z-index: 9999;">
+        <div class="modal-box modal-lg" style="background: transparent; box-shadow: none; padding: 0; margin-top: 40px; position: relative;">
+            <div style="position: relative; text-align: center;">
+                <!-- Close -->
+                <button class="modal-close" style="background: white; border-radius: 50%; width: 40px; height: 40px; right: -20px; top: -50px; position: absolute; font-size: 20px; color:#1a1a2e;" onclick="document.getElementById('fileViewerModal').style.display='none'; hideViewerArrows()">✕</button>
+
+                <!-- LEFT arrow -->
+                <button id="fileViewerPrev" onclick="navigateViewer(-1)"
+                    style="display:none; position:fixed; left:20px; top:50%; transform:translateY(-50%); background:rgba(255,255,255,0.95); border:none; border-radius:50%; width:52px; height:52px; font-size:24px; color:#1a1a2e; cursor:pointer; box-shadow:0 4px 16px rgba(0,0,0,0.3); z-index:10001; align-items:center; justify-content:center; transition:background 0.2s;" onmouseover="this.style.background='#25CED1';this.style.color='white'" onmouseout="this.style.background='rgba(255,255,255,0.95)';this.style.color='#1a1a2e'">&#8592;</button>
+
+                <!-- RIGHT arrow -->
+                <button id="fileViewerNext" onclick="navigateViewer(1)"
+                    style="display:none; position:fixed; right:20px; top:50%; transform:translateY(-50%); background:rgba(255,255,255,0.95); border:none; border-radius:50%; width:52px; height:52px; font-size:24px; color:#1a1a2e; cursor:pointer; box-shadow:0 4px 16px rgba(0,0,0,0.3); z-index:10001; align-items:center; justify-content:center; transition:background 0.2s;" onmouseover="this.style.background='#25CED1';this.style.color='white'" onmouseout="this.style.background='rgba(255,255,255,0.95)';this.style.color='#1a1a2e'">&#8594;</button>
+
+                <!-- Image counter e.g. "1 / 2" -->
+                <div id="fileViewerCounter" style="display:none; position:absolute; bottom:-36px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.6); color:white; font-size:13px; font-weight:600; padding:5px 16px; border-radius:20px; white-space:nowrap;"></div>
+
+                <img id="fileViewerImg" style="max-width: 100%; max-height: 80vh; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); display:none; margin: 0 auto; object-fit: contain; background: white;" />
+                <div id="fileViewerDoc" style="display:none; background: white; padding: 40px; border-radius: 12px; max-width: 400px; margin: 0 auto; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#25CED1" stroke-width="1.5" width="64" height="64" style="margin-bottom: 16px;">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+                    </svg>
+                    <h3 id="fileViewerDocName" style="margin-bottom: 24px; color: #1a1a2e; word-break: break-all;">Document</h3>
+                    <button class="btn-primary" id="fileViewerDownloadBtn" style="width: 100%;">Download Document</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- TOAST NOTIFICATION -->
     <div class="toast" id="toast" style="display:none;"></div>
 
