@@ -123,10 +123,17 @@ function saveMember() {
   }
 
   const members = getMembers();
+  const phone = document.getElementById('mPhone').value.trim();
+  
+  if (phone && phone.length !== 10) {
+    showToast('phone no must be 10 number', 'error');
+    return;
+  }
+
   const data = {
     name, dob, gender, bloodGroup: blood,
     role: document.getElementById('mRole').value.trim(),
-    phone: document.getElementById('mPhone').value.trim(),
+    phone: phone,
     emergency: document.getElementById('mEmergency').value.trim(),
     allergies: document.getElementById('mAllergies').value.trim(),
     conditions: document.getElementById('mConditions').value.trim(),
