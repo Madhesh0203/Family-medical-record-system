@@ -184,31 +184,36 @@ window.handleReportUpload = function(input) {
         const nameParts = firstFile.name.split('.');
         rName.value = (nameParts.length > 1 ? nameParts.slice(0, -1).join('.') : firstFile.name).replace(/[-_]+/g, ' ').trim();
     }
-    let processedFiles = 0;
     const filesToProcess = Array.from(input.files);
     const status = document.getElementById('rUploadStatus');
-    filesToProcess.forEach(file => {
+    
+    function processNextFile(index) {
+        if (index >= filesToProcess.length) {
+            if (status) status.textContent = `✓ ${window._tempReportAttachments.length} file(s) attached`;
+            if (input.value !== undefined) input.value = '';
+            updateReportModalPreview();
+            return;
+        }
+        
+        const file = filesToProcess[index];
         if (!file.name.match(/\.(pdf|doc|docx|jpg|jpeg|png)$/i)) {
             showToast(`Skipped ${file.name}: Invalid format.`, 'error');
-            processedFiles++; checkDone(); return;
+            processNextFile(index + 1);
+            return;
         }
+        
         const reader = new FileReader();
         reader.onload = function(e) {
             const fileType = file.type || (file.name.match(/\.pdf$/i) ? 'application/pdf' : '');
             compressAttachment(e.target.result, file.name, fileType, function(att) {
                 window._tempReportAttachments.push(att);
-                processedFiles++; checkDone();
+                processNextFile(index + 1);
             });
         };
         reader.readAsDataURL(file);
-    });
-    function checkDone() {
-        if (processedFiles === filesToProcess.length) {
-            if (status) status.textContent = `✓ ${window._tempReportAttachments.length} file(s) attached`;
-            if (input.value !== undefined) input.value = '';
-            updateReportModalPreview();
-        }
     }
+    
+    processNextFile(0);
 };
 
 function updateReportModalPreview() {
@@ -274,32 +279,37 @@ function handleDirectReportUpload(input) {
         if (input.value !== undefined) input.value = '';
         return;
     }
-    let processedFiles = 0;
     const filesToProcess = Array.from(input.files);
-    filesToProcess.forEach(file => {
-        if (!file.name.match(/\.(pdf|doc|docx|jpg|jpeg|png)$/i)) {
-            showToast(`Skipped ${file.name}: Invalid format.`, 'error');
-            processedFiles++; checkDone(); return;
-        }
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const fileType = file.type || (file.name.match(/\.pdf$/i) ? 'application/pdf' : '');
-            compressAttachment(e.target.result, file.name, fileType, function(att) {
-                reports[idx].attachments.push(att);
-                processedFiles++; checkDone();
-            });
-        };
-        reader.readAsDataURL(file);
-    });
-    function checkDone() {
-        if (processedFiles === filesToProcess.length) {
+    
+    function processNextDirectFile(index) {
+        if (index >= filesToProcess.length) {
             saveReports(reports);
             renderReports();
             showToast('Files attached successfully', 'success');
             if (input.value !== undefined) input.value = '';
             currentDirectReportUploadId = null;
+            return;
         }
+
+        const file = filesToProcess[index];
+        if (!file.name.match(/\.(pdf|doc|docx|jpg|jpeg|png)$/i)) {
+            showToast(`Skipped ${file.name}: Invalid format.`, 'error');
+            processNextDirectFile(index + 1);
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const fileType = file.type || (file.name.match(/\.pdf$/i) ? 'application/pdf' : '');
+            compressAttachment(e.target.result, file.name, fileType, function(att) {
+                reports[idx].attachments.push(att);
+                processNextDirectFile(index + 1);
+            });
+        };
+        reader.readAsDataURL(file);
     }
+
+    processNextDirectFile(0);
 }
 
 function deleteReportAttachment(reportId, attachmentIndex) {

@@ -33,9 +33,18 @@ function getFamilyData() {
 function saveFamilyData(data) {
     const uid = getCurrentUid();
     if (!uid) return;
-    const all = JSON.parse(localStorage.getItem(FAMILIES_KEY) || '{}');
-    all[uid] = data;
-    localStorage.setItem(FAMILIES_KEY, JSON.stringify(all));
+    try {
+        const all = JSON.parse(localStorage.getItem(FAMILIES_KEY) || '{}');
+        all[uid] = data;
+        localStorage.setItem(FAMILIES_KEY, JSON.stringify(all));
+    } catch (e) {
+        console.error('Error saving family data:', e);
+        if (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
+            if (typeof showToast === 'function') {
+                showToast('Storage full! File is too large to save. Try a smaller image.', 'error');
+            }
+        }
+    }
 }
 function getMembers() { return getFamilyData().members || []; }
 function getVisits() { return getFamilyData().visits || []; }
