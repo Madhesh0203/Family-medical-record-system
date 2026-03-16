@@ -6,19 +6,10 @@ const FAMILIES_KEY = 'familymed_families';
 const USERS_KEY = 'familymed_users';
 
 function getUsers() {
-    try {
-        return JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
-    } catch (e) {
-        console.error('Error parsing users:', e);
-        return [];
-    }
+    return JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
 }
 function saveUsers(users) {
-    try {
-        localStorage.setItem(USERS_KEY, JSON.stringify(users));
-    } catch (e) {
-        console.error('Error saving users:', e);
-    }
+    localStorage.setItem(USERS_KEY, JSON.stringify(users));
 }
 
 function getSession() {
@@ -33,32 +24,18 @@ function getCurrentUid() {
     return s ? s.uid : null;
 }
 function getFamilyData() {
-    try {
-        const uid = getCurrentUid();
-        const all = JSON.parse(localStorage.getItem(FAMILIES_KEY) || '{}');
-        if (!uid) return { members: [], visits: [], reports: [] };
-        if (!all[uid]) all[uid] = { members: [], visits: [], reports: [] };
-        return all[uid];
-    } catch (e) {
-        console.error('Error getting family data:', e);
-        return { members: [], visits: [], reports: [] };
-    }
+    const uid = getCurrentUid();
+    const all = JSON.parse(localStorage.getItem(FAMILIES_KEY) || '{}');
+    if (!uid) return { members: [], visits: [], reports: [] };
+    if (!all[uid]) all[uid] = { members: [], visits: [], reports: [] };
+    return all[uid];
 }
 function saveFamilyData(data) {
     const uid = getCurrentUid();
     if (!uid) return;
-    try {
-        const all = JSON.parse(localStorage.getItem(FAMILIES_KEY) || '{}');
-        all[uid] = data;
-        localStorage.setItem(FAMILIES_KEY, JSON.stringify(all));
-    } catch (e) {
-        console.error('Error saving family data:', e);
-        if (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
-            if (typeof showToast === 'function') {
-                showToast('Storage full! File is too large to save. Try a smaller image.', 'error');
-            }
-        }
-    }
+    const all = JSON.parse(localStorage.getItem(FAMILIES_KEY) || '{}');
+    all[uid] = data;
+    localStorage.setItem(FAMILIES_KEY, JSON.stringify(all));
 }
 function getMembers() { return getFamilyData().members || []; }
 function getVisits() { return getFamilyData().visits || []; }
